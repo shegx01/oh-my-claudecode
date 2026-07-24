@@ -11,6 +11,7 @@ import { loadAgentPrompt, parseDisallowedTools } from './utils.js';
 import { loadConfig } from '../config/loader.js';
 import { resolveInheritedModelFromEnv } from '../config/models.js';
 import { appendSkininthegamebrosGuidance } from './skininthegamebros-guidance.js';
+import { appendCodingStandardsGuidance } from './coding-standards.js';
 // Re-export base agents from individual files (rebranded names)
 export { architectAgent } from './architect.js';
 export { designerAgent } from './designer.js';
@@ -224,7 +225,7 @@ export function getAgentDefinitions(options) {
         const resolvedDefaultModel = override?.defaultModel ?? agentConfig.defaultModel;
         result[name] = {
             description: override?.description ?? agentConfig.description,
-            prompt: appendSkininthegamebrosGuidance(override?.prompt ?? agentConfig.prompt, 'agent'),
+            prompt: appendCodingStandardsGuidance(name, appendSkininthegamebrosGuidance(override?.prompt ?? agentConfig.prompt, 'agent')),
             tools: override?.tools ?? agentConfig.tools,
             disallowedTools,
             model: resolvedModel,
