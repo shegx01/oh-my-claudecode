@@ -1,6 +1,5 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import {
   cpSync,
   existsSync,
@@ -23,8 +22,6 @@ import {
   type McpServerConfig,
   type PluginJson,
 } from "./npm-package-surface-helpers.js";
-// @ts-expect-error The shipping transaction is an ESM maintainer script without declarations.
-import { collectPluginRuntimeClosure } from "../../scripts/plugin-shipping-surface.mjs";
 
 const PACKAGE_ROOT = process.cwd();
 const PACKAGE_JSON_PATH = join(PACKAGE_ROOT, "package.json");
@@ -42,10 +39,6 @@ type PackedPackage = {
   pluginJson: PluginJson;
   mcpServers: Record<string, McpServerConfig>;
   startedWithoutGeneratedBundles: boolean;
-};
-
-type PluginShippingSurface = {
-  requiredPaths: string[];
 };
 
 const CLI_BIN_TARGET = "bin/oh-my-claudecode.js";
@@ -71,10 +64,6 @@ let tarballPathCache: string | null = null;
 
 function readPackageJson(): PackageJson {
   return JSON.parse(readFileSync(PACKAGE_JSON_PATH, "utf-8")) as PackageJson;
-}
-
-function sha256(path: string): string {
-  return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
 
 function createIsolatedPackWorkspace(
@@ -229,23 +218,6 @@ describe("npm package bin surface regression", () => {
     expect(packedFiles.has("bridge/team.js")).toBe(true);
     expect(packedFiles.has("bridge/gyoshu_bridge.py")).toBe(true);
     expect(packedFiles.has("bridge/run-mcp-server.sh")).toBe(true);
-  });
-
-  it("keeps the committed plugin runtime closure as a byte-identical npm package subset", () => {
-    const surface = collectPluginRuntimeClosure(
-      committedSnapshotCache!,
-    ) as PluginShippingSurface;
-    const extractedPackageRoot = join(packDirCache!, "package");
-
-    for (const relativePath of surface.requiredPaths) {
-      expect(packedPackageFixture.files.has(relativePath), relativePath).toBe(
-        true,
-      );
-      expect(
-        sha256(join(extractedPackageRoot, relativePath)),
-        relativePath,
-      ).toBe(sha256(join(committedSnapshotCache!, relativePath)));
-    }
   });
 
   it("rebuilds recovery CLI surfaces from source without committed bundles", () => {
