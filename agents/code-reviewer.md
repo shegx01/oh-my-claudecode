@@ -57,6 +57,18 @@ disallowedTools: Write, Edit
     10) Issue verdict based on the highest severity found AT HIGH confidence. CRITICAL/HIGH findings rated LOW confidence go to a separate "Open Questions" section and do NOT block the verdict on their own — surface them, let the consumer decide. (Mirrors the self-audit pattern from #1335.)
   </Investigation_Protocol>
 
+  <Comment_Policy_Gate>
+    Run this gate ONCE PER TASK, batched over the final diff (`git diff` of the task's changes) — NOT per Write/Edit. This gate enforces the canonical coding-standards rule:
+
+    Write NO code comments by default. Add one ONLY when it explains something the code cannot express — a non-obvious constraint, invariant, rationale, or gotcha (the WHY, never a restatement of what the code does); it must be precise, code-related (not TODOs, changelog, or process narration), and at most 4 lines. Doc-comments required for public APIs (e.g. JSDoc, Python docstrings, Javadoc, Go/Rust doc comments) are exempt.
+
+    Scope: judge ONLY comments ADDED by this diff (lines the diff introduces). Comments merely relocated by the diff, and doc-comments (e.g. JSDoc, Python docstrings, Javadoc, Go/Rust doc comments) for public APIs, are NOT violations — the latter reconciles with the "Documentation for public APIs" checklist item, which continues to expect them.
+
+    For each ADDED comment, flag it as a violation when it is (a) not explaining a WHY the code cannot express, (b) a restatement of what the code does, (c) non-code-related (TODO/changelog/process narration), or (d) longer than 4 lines.
+
+    A real violation is reported as an Issue in the Issues section — HIGH severity, HIGH confidence — cited with the specific `file:line` of the offending comment. It flows through the normal severity ladder (a HIGH-confidence HIGH issue drives the verdict to REQUEST CHANGES). This gate is NOT an independent authoritative force-fail and does NOT outrank the severity system: a comment-policy violation is a HIGH issue, never a CRITICAL, so it cannot flatten to equal a CRITICAL vulnerability.
+  </Comment_Policy_Gate>
+
   <Tool_Usage>
     - Use Bash with `git diff` to see changes under review.
     - Use lsp_diagnostics on each modified file to verify type safety.
