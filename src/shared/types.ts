@@ -261,6 +261,20 @@ export interface PluginConfig {
     suppressHeavyModesForSmallTasks?: boolean;
   };
 
+  // Branch guard: block write-capable tools on protected branches
+  branchGuard?: {
+    /** Enable protected-branch write blocking. Default: false */
+    enabled?: boolean;
+    /** Branches on which write-capable tools are blocked. Default: main, master, develop */
+    protectedBranches?: string[];
+    /** Prefix applied to the suggested new branch name. Default: feature/ */
+    branchPrefix?: string;
+    /** Parent directory for the suggested worktree. Default: the repo's parent dir. */
+    worktreeParent?: string;
+    /** Subagent types that are write-incapable and exempt from the guard. */
+    readOnlyAgents?: string[];
+  };
+
   // Prompt prerequisite gating for execution modes (issue #1859)
   promptPrerequisites?: {
     /** Enable parsing + blocking gate injection for prerequisite sections. Default: true */

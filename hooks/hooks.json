@@ -70,6 +70,16 @@
             "timeout": 3
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Task|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PLUGIN_ROOT\"/scripts/run.cjs \"$CLAUDE_PLUGIN_ROOT\"/scripts/branch-guard.mjs",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "PermissionRequest": [

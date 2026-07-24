@@ -173,6 +173,11 @@ export function buildDefaultConfig(): PluginConfig {
     autopilot: {
       execution: "solo",
     },
+    branchGuard: {
+      enabled: false,
+      protectedBranches: ["main", "master", "develop"],
+      branchPrefix: "feature/",
+    },
     planOutput: {
       directory: ".omc/plans",
       filenameTemplate: "{{name}}.md",
@@ -446,6 +451,14 @@ export function loadEnvConfig(): Partial<PluginConfig> {
         defaultProvider: provider as "claude" | "codex" | "gemini",
       };
     }
+  }
+
+  // Branch guard enable override from environment
+  if (process.env.OMC_BRANCH_GUARD_ENABLED !== undefined) {
+    config.branchGuard = {
+      ...config.branchGuard,
+      enabled: process.env.OMC_BRANCH_GUARD_ENABLED === "true",
+    };
   }
 
   // /team role routing env override (OMC_TEAM_ROLE_OVERRIDES — single JSON var).
@@ -771,6 +784,73 @@ export function validateAutopilotConfig(config: PluginConfig): void {
   }
 }
 
+// branchPrefix / worktreeParent are interpolated into the git command shown to
+// the assistant, so reject shell/flag-injection metacharacters. Mirrors the
+// merge-coordinator branch-name guard: a leading "-" (flag injection) plus
+// `;`, `|`, `&`, `$`, backtick, quotes, and newlines are all disallowed.
+const BRANCH_GUARD_UNSAFE_RE = /[;|&$`'"\n\r]/;
+
+function assertBranchGuardSafeString(value: string, path: string): void {
+  if (value.startsWith("-")) {
+    throw new Error(`[OMC] ${path}: must not begin with "-" (flag-injection risk)`);
+  }
+  if (BRANCH_GUARD_UNSAFE_RE.test(value)) {
+    throw new Error(
+      `[OMC] ${path}: contains shell metacharacters (; | & $ \` ' " or newline) which are not allowed`,
+    );
+  }
+}
+
+function assertStringArray(value: unknown, path: string): void {
+  if (!Array.isArray(value)) {
+    throw new Error(`[OMC] ${path}: must be an array of strings`);
+  }
+  for (const entry of value) {
+    if (typeof entry !== "string") {
+      throw new Error(`[OMC] ${path}: must be an array of strings, got ${typeof entry} entry`);
+    }
+  }
+}
+
+export function validateBranchGuardConfig(config: PluginConfig): void {
+  const branchGuard = (config as Record<string, unknown>).branchGuard as
+    | Record<string, unknown>
+    | undefined;
+  if (!branchGuard || typeof branchGuard !== "object") return;
+
+  if (branchGuard.enabled !== undefined && typeof branchGuard.enabled !== "boolean") {
+    throw new Error(
+      `[OMC] branchGuard.enabled: must be a boolean, got ${typeof branchGuard.enabled}`,
+    );
+  }
+
+  if (branchGuard.protectedBranches !== undefined) {
+    assertStringArray(branchGuard.protectedBranches, "branchGuard.protectedBranches");
+  }
+
+  if (branchGuard.readOnlyAgents !== undefined) {
+    assertStringArray(branchGuard.readOnlyAgents, "branchGuard.readOnlyAgents");
+  }
+
+  if (branchGuard.branchPrefix !== undefined) {
+    if (typeof branchGuard.branchPrefix !== "string") {
+      throw new Error(
+        `[OMC] branchGuard.branchPrefix: must be a string, got ${typeof branchGuard.branchPrefix}`,
+      );
+    }
+    assertBranchGuardSafeString(branchGuard.branchPrefix, "branchGuard.branchPrefix");
+  }
+
+  if (branchGuard.worktreeParent !== undefined) {
+    if (typeof branchGuard.worktreeParent !== "string") {
+      throw new Error(
+        `[OMC] branchGuard.worktreeParent: must be a string, got ${typeof branchGuard.worktreeParent}`,
+      );
+    }
+    assertBranchGuardSafeString(branchGuard.worktreeParent, "branchGuard.worktreeParent");
+  }
+}
+
 function isValidModelValue(value: unknown): value is string {
   if (typeof value !== "string") return false;
   if (value.length === 0) return false;
@@ -851,6 +931,7 @@ export function loadConfig(): PluginConfig {
   // walking the parsed object so deepMerge bypasses surface here.
   validateTeamConfig(config);
   validateAutopilotConfig(config);
+  validateBranchGuardConfig(config);
 
   return config;
 }
@@ -1381,6 +1462,41 @@ export function generateConfigSchema(): object {
                   "Preferred CLI worker types for executor-style autopilot team execution tasks",
               },
             },
+          },
+        },
+      },
+      branchGuard: {
+        type: "object",
+        description:
+          "Block write-capable tool calls on protected git branches and prompt for a new branch + worktree",
+        properties: {
+          enabled: {
+            type: "boolean",
+            default: false,
+            description: "Enable protected-branch write blocking",
+          },
+          protectedBranches: {
+            type: "array",
+            items: { type: "string" },
+            default: ["main", "master", "develop"],
+            description:
+              "Branches on which write-capable tools are blocked (replaces the default [main, master, develop] rather than extending it)",
+          },
+          branchPrefix: {
+            type: "string",
+            default: "feature/",
+            description: "Prefix applied to the suggested new branch name",
+          },
+          worktreeParent: {
+            type: "string",
+            description:
+              "Parent directory for the suggested worktree. Defaults to the repo's parent directory",
+          },
+          readOnlyAgents: {
+            type: "array",
+            items: { type: "string" },
+            description:
+              "Subagent types that are write-incapable and exempt from the guard (replaces the default exempt set)",
           },
         },
       },

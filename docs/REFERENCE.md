@@ -120,8 +120,9 @@ If both configurations exist, **project-scoped takes precedence** over global:
 | `OMC_LSP_TIMEOUT_MS`       | `15000`              | Timeout (ms) for LSP requests. Increase for large repos or slow language servers                                                                                                                                                                                            |
 | `OMC_MIGRATE_LEGACY_STATE` | _(unset)_            | Set to `1` to enable one-shot legacy→session-scoped state migration on next read. See [Legacy state migration](#legacy-state-migration-omc_migrate_legacy_state) below.                                                                                                      |
 | `OMC_DISABLE_MULTIREPO`    | _(unset)_            | Set to `1` to disable workspace-marker resolution and fall back to git-root + cwd resolution order. `OMC_STATE_DIR` is still honoured. See [Rollback / disable multi-repo](#rollback--disable-multi-repo-omc_disable_multirepo) below.                                       |
+| `OMC_BRANCH_GUARD_ENABLED` | _(unset)_            | Override the `branchGuard.enabled` config flag. Set to `true` to enable protected-branch write blocking, `false` to disable it, regardless of config file value. See [Branch guard](#branch-guard-branchguard) below.                                                          |
 | `DISABLE_OMC`              | _(unset)_            | Set to `1` or `true` to disable all OMC hooks |
-| `OMC_SKIP_HOOKS`           | _(unset)_            | Comma-separated list of hook names to skip                                                                                                                                                                                                                                  |
+| `OMC_SKIP_HOOKS`           | _(unset)_            | Comma-separated list of hook names to skip (e.g. `OMC_SKIP_HOOKS=branch-guard`)                                                                                                                                                                                              |
 
 #### Centralized State with `OMC_STATE_DIR`
 
@@ -261,6 +262,38 @@ Multi-plan layout, enabled by `--plan-id <id>` or `--auto-plan-id` on `omc ultra
 ```
 
 `--auto-plan-id` derives `{epochMs}-{slug}` from the brief title, so two parallel sessions running `omc ultragoal create-goals --auto-plan-id ...` never collide. Subsequent commands (`status`, `add-goal`, `complete-goals`, `checkpoint`, `record-review-blockers`) auto-resolve the plan when there is exactly one; when there are multiple, they require `--plan-id <id>`. `omc ultragoal list-plans` enumerates the available plan ids.
+
+#### Branch guard (`branchGuard`)
+
+When enabled, the branch guard blocks write-capable tool calls (`Write`, `Edit`, `Bash`, write-capable `Task`/`Agent` spawns, etc.) while you are on a protected git branch, and prompts the assistant to create an isolated branch + worktree before proceeding. It is **off by default**.
+
+Configure it under `branchGuard` in `.claude/omc.jsonc` (or the global config):
+
+```jsonc
+{
+  "branchGuard": {
+    "enabled": true,
+    "protectedBranches": ["main", "master", "develop"],
+    "branchPrefix": "feature/",
+    "worktreeParent": "/path/to/worktrees",
+    "readOnlyAgents": ["explore", "code-reviewer"]
+  }
+}
+```
+
+- **`enabled`** (boolean, default `false`) — turn the guard on or off. The `OMC_BRANCH_GUARD_ENABLED` environment variable overrides this flag (`true`/`false`).
+- **`protectedBranches`** (string[], default `["main", "master", "develop"]`) — the branches on which writes are blocked. Setting this **replaces** the default list rather than extending it.
+- **`branchPrefix`** (string, default `"feature/"`) — prefix applied to the suggested new branch name in the guard message.
+- **`worktreeParent`** (string, default: the repo's parent directory) — parent directory for the suggested worktree path.
+- **`readOnlyAgents`** (string[]) — subagent types that are write-incapable and exempt from the guard. Setting this **replaces** the default exempt set (read-only OMC/harness agents such as `explore`, `analyst`, `architect`, `code-reviewer`, `critic`, `security-reviewer`, `document-specialist`, `scientist`, `verifier`, plus native catch-alls). Matching is case-insensitive and ignores a leading `oh-my-claudecode:` namespace prefix.
+
+`branchPrefix` and `worktreeParent` are interpolated into the git command shown to the assistant, so values containing shell/flag-injection metacharacters (`;`, `|`, `&`, `$`, backtick, quotes, newlines, or a leading `-`) are rejected at config load time.
+
+**Per-session bypass**: if the user declines the guard and wants to keep working on the protected branch, the guard message emits a `mkdir -p … && touch …` command that creates a `.branch-guard-ack` marker under `.omc/state/sessions/{sessionId}/`. Once that marker exists, the guard stays silent for the rest of that session.
+
+**Disable for one session**: set `OMC_SKIP_HOOKS=branch-guard` (or `DISABLE_OMC=1` to disable all OMC hooks) to skip the guard entirely.
+
+The guard is **fail-open**: any unexpected error (config load failure, git failure, etc.) allows the tool call so the guard can never wedge the workflow.
 
 ### When to Re-run Setup
 

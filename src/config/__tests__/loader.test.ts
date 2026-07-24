@@ -903,3 +903,72 @@ describe("loadConfig() — autopilot.workflows", () => {
     expect(workflows.additionalProperties?.properties).not.toHaveProperty("stageModels");
   });
 });
+
+describe("loadConfig() — branchGuard validation", () => {
+  let saved: Record<string, string | undefined>;
+  let originalCwd: string;
+
+  beforeEach(() => {
+    saved = saveAndClear([...ALL_KEYS, "OMC_BRANCH_GUARD_ENABLED"] as const);
+    originalCwd = process.cwd();
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    restore(saved);
+  });
+
+  function withProjectConfig(branchGuard: unknown, run: () => void): void {
+    const tempDir = mkdtempSync(join(tmpdir(), "omc-branch-guard-"));
+    try {
+      const claudeDir = join(tempDir, ".claude");
+      require("node:fs").mkdirSync(claudeDir, { recursive: true });
+      writeFileSync(join(claudeDir, "omc.jsonc"), JSON.stringify({ branchGuard }));
+      process.chdir(tempDir);
+      run();
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  }
+
+  it("accepts a well-formed branchGuard config", () => {
+    withProjectConfig(
+      {
+        enabled: true,
+        protectedBranches: ["main", "release"],
+        readOnlyAgents: ["explore"],
+        branchPrefix: "feature/",
+        worktreeParent: "/custom/wt",
+      },
+      () => {
+        const config = loadConfig();
+        expect(config.branchGuard?.enabled).toBe(true);
+        expect(config.branchGuard?.protectedBranches).toEqual(["main", "release"]);
+      },
+    );
+  });
+
+  it("rejects a non-boolean enabled", () => {
+    withProjectConfig({ enabled: "yes" }, () => {
+      expect(() => loadConfig()).toThrow(/branchGuard\.enabled/);
+    });
+  });
+
+  it("rejects a non-array protectedBranches", () => {
+    withProjectConfig({ protectedBranches: "main" }, () => {
+      expect(() => loadConfig()).toThrow(/branchGuard\.protectedBranches/);
+    });
+  });
+
+  it("rejects a branchPrefix with shell metacharacters", () => {
+    withProjectConfig({ branchPrefix: "feature/;rm -rf" }, () => {
+      expect(() => loadConfig()).toThrow(/branchGuard\.branchPrefix/);
+    });
+  });
+
+  it("rejects a worktreeParent beginning with '-' (flag injection)", () => {
+    withProjectConfig({ worktreeParent: "--upload-pack=evil" }, () => {
+      expect(() => loadConfig()).toThrow(/branchGuard\.worktreeParent/);
+    });
+  });
+});
