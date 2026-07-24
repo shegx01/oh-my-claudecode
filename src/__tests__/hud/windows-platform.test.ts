@@ -38,8 +38,11 @@ function getSeparator(platform: string): string {
   return isWin32(platform) ? ';' : ':';
 }
 
+// ASCII fallback fires on explicit safeMode:true OR Windows. Windows always
+// degrades regardless of the configured safeMode (glyph-based design ships the
+// real glyphs only on macOS/Linux with safeMode:false).
 function getSafeMode(configSafeMode: boolean, platform: string): boolean {
-  return configSafeMode !== false && (configSafeMode || isWin32(platform));
+  return configSafeMode === true || isWin32(platform);
 }
 
 describe('Windows HUD Platform Fixes (#739)', () => {
@@ -224,16 +227,16 @@ describe('Windows HUD Platform Fixes (#739)', () => {
         join(packageRoot, 'src', 'hud', 'index.ts'),
         'utf-8',
       );
-      expect(content).toContain("process.platform === 'win32'");
-      expect(content).toContain('config.elements.safeMode !== false');
+      expect(content).toContain('process.platform === "win32"');
+      expect(content).toContain('config.elements.safeMode === true');
     });
 
     it('safe mode logic: config=false on Mac -> disabled', () => {
       expect(getSafeMode(false, 'darwin')).toBe(false);
     });
 
-    it('safe mode logic: config=false on Windows -> disabled (explicit override)', () => {
-      expect(getSafeMode(false, 'win32')).toBe(false);
+    it('safe mode logic: config=false on Windows -> enabled (Windows always ASCII)', () => {
+      expect(getSafeMode(false, 'win32')).toBe(true);
     });
 
     it('safe mode logic: config=true on Mac -> enabled', () => {

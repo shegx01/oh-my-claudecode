@@ -13,6 +13,9 @@ import {
   getContextPercent,
   getModelId,
   getModelName,
+  getGithubUser,
+  getReasoningEffort,
+  getFastMode,
   getRateLimitsFromStdin,
   stabilizeContextPercent,
 } from "./stdin.js";
@@ -498,6 +501,9 @@ async function main(watchMode = false, skipInit = false): Promise<void> {
       sessionSummary,
       lastToolName: transcriptData.lastToolName,
       payloadEstimate,
+      githubUser: getGithubUser(stdin),
+      reasoningEffort: getReasoningEffort(stdin),
+      fastMode: getFastMode(stdin),
     };
 
     // Debug: log data if OMC_DEBUG is set
@@ -550,14 +556,12 @@ async function main(watchMode = false, skipInit = false): Promise<void> {
     // Apply safe mode sanitization if enabled (Issue #346)
     // This strips ANSI codes and uses ASCII-only output to prevent
     // terminal rendering corruption during concurrent updates.
-    // On Windows, default to safe mode unless the user explicitly sets safeMode: false
-    // (e.g. Windows Terminal and modern terminals support ANSI natively).
-    // The win32 fallback is retained for configs that omit safeMode entirely
-    // (before default merge, e.g. minimal config files or future schema changes).
-    // explicit false overrides platform detection: process.platform === 'win32'
+    // ASCII fallback fires on explicit safeMode:true OR Windows (Windows always
+    // degrades regardless of the configured safeMode, since its terminals may
+    // not render multi-byte glyphs). macOS/Linux with safeMode:false render the
+    // real glyphs. This mirrors the render.ts per-element gate exactly.
     const useSafeMode =
-      config.elements.safeMode !== false &&
-      (config.elements.safeMode || process.platform === "win32");
+      config.elements.safeMode === true || process.platform === "win32";
 
     if (useSafeMode) {
       output = sanitizeOutput(output);

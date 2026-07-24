@@ -80,6 +80,25 @@ export interface StatuslineStdin {
       resets_at?: number | string;
     };
   };
+
+  /** Reasoning-effort selection from Claude Code statusline stdin */
+  effort?: {
+    level?: string;
+  };
+
+  /** Fast-mode flag from Claude Code statusline stdin (renders a `fast` token) */
+  fast_mode?: boolean;
+
+  /** Workspace metadata from Claude Code statusline stdin */
+  workspace?: {
+    current_dir?: string;
+    project_dir?: string;
+    repo?: {
+      host?: string;
+      owner?: string;
+      name?: string;
+    };
+  };
 }
 
 // ============================================================================
@@ -423,13 +442,29 @@ export interface HudRenderContext {
 
   /** Best-effort local transcript-backed request payload pressure estimate. */
   payloadEstimate?: PayloadEstimate | null;
+
+  /** GitHub user/owner from statusline stdin workspace.repo.owner; null when unavailable */
+  githubUser?: string | null;
+
+  /** Reasoning-effort level from statusline stdin effort.level; null when unavailable */
+  reasoningEffort?: string | null;
+
+  /** Fast-mode flag from statusline stdin fast_mode; renders a `fast` token */
+  fastMode?: boolean;
 }
 
 // ============================================================================
 // Configuration
 // ============================================================================
 
-export type HudPreset = 'minimal' | 'focused' | 'full' | 'opencode' | 'dense';
+export type HudPreset = 'minimal' | 'focused' | 'full' | 'opencode' | 'dense' | 'stacked';
+
+/**
+ * Meter rendering style for percentage vitals (context, rate limits):
+ * - bars: bracketed block bar (default when undefined)
+ * - dots: filled/empty dot meter (● ● ● ○ ○)
+ */
+export type MeterStyle = 'bars' | 'dots';
 
 /**
  * Agent display format options:
@@ -457,8 +492,9 @@ export type ThinkingFormat = 'bubble' | 'brain' | 'face' | 'text';
  * - relative: ~/workspace/dotfiles (home-relative)
  * - absolute: /Users/dat/workspace/dotfiles (full path)
  * - folder: dotfiles (folder name only)
+ * - last: …/dotfiles (last segment with a leading ▸ glyph; used by the stacked preset)
  */
-export type CwdFormat = 'relative' | 'absolute' | 'folder';
+export type CwdFormat = 'relative' | 'absolute' | 'folder' | 'last';
 
 /**
  * Model name format options:
@@ -599,6 +635,10 @@ export interface HudElementConfig {
   enterpriseMode?: boolean;       // Explicit override for enterprise mode (undefined = auto-detect)
   showEnterpriseCost?: boolean;   // Whether to render enterprise billing cost (default: true when enterprise)
   useBars: boolean;           // Show visual progress bars instead of/alongside percentages
+  meterStyle?: MeterStyle;    // Percentage meter treatment for context/rate limits (default undefined => 'bars')
+  healthSigil?: boolean;      // Show single health-sigil dot whose color reflects overall session state
+  githubUser?: boolean;       // Show @owner identity from workspace.repo.owner
+  effort?: boolean;           // Show reasoning-effort level, plus a `fast` token when fast_mode is set
   showCallCounts?: boolean;   // Show tool/agent/skill call counts on the right of the status line (default: true)
   callCountsFormat?: CallCountsFormat; // Controls call count icon rendering: auto (platform default), emoji, or ascii
   showLastTool?: boolean;      // Show name of last tool called (tool:Read)
@@ -651,14 +691,35 @@ export interface LayoutConfig {
  * Used as fallback when no layout is configured.
  */
 export const DEFAULT_ELEMENT_ORDER: Required<LayoutConfig> = {
-  line1: ['hostname', 'cwd', 'gitRepo', 'gitBranch', 'gitStatus', 'apiKeySource', 'profile'],
+  line1: ['healthSigil', 'githubUser', 'hostname', 'cwd', 'gitRepo', 'gitBranch', 'gitStatus', 'apiKeySource', 'profile', 'effort'],
   main: [
     'omcLabel', 'model', 'enterpriseCost', 'rateLimits', 'customBuckets', 'permission', 'thinking',
     'promptTime', 'session', 'tokens', 'ralph', 'autopilot', 'prd',
     'skills', 'lastSkill', 'contextBar', 'agents', 'background',
     'callCounts', 'lastTool', 'sessionSummary',
   ],
-  detail: ['missionBoard', 'agents', 'contextWarning', 'payloadWarning', 'todos'],
+  detail: ['missionBoard', 'agents', 'contextWarning', 'payloadWarning', 'todos', 'activity'],
+};
+
+/**
+ * Layout for the `stacked` preset's 3-row design:
+ *   Row 1 (identity): health-sigil, @user, worktree/branch, dir, effort, last-skill
+ *   Row 2 (vitals):   model, ctx, 5h/wk limits, call counts
+ *   Row 3 (activity): ralph, autopilot, prd, agents, todos, background (inline-joined)
+ */
+export const STACKED_LAYOUT: Required<LayoutConfig> = {
+  line1: ['healthSigil', 'githubUser', 'gitBranch', 'cwd', 'effort', 'lastSkill'],
+  main: ['model', 'contextBar', 'rateLimits', 'callCounts'],
+  detail: ['activity'],
+};
+
+/**
+ * Optional per-preset element ordering. Applied at config-merge time only
+ * when the user has not supplied their own `layout`. Presets not listed here
+ * fall back to DEFAULT_ELEMENT_ORDER.
+ */
+export const PRESET_LAYOUTS: Partial<Record<HudPreset, LayoutConfig>> = {
+  stacked: STACKED_LAYOUT,
 };
 
 export interface HudConfig {
@@ -968,5 +1029,54 @@ export const PRESET_CONFIGS: Record<HudPreset, Partial<HudElementConfig>> = {
     sessionSummary: false, // Opt-in: sends transcript to claude -p
     maxOutputLines: 6,
     safeMode: true,
+  },
+  stacked: {
+    cwd: true,
+    cwdFormat: 'last',
+    useHyperlinks: false,
+    gitRepo: false,
+    gitBranch: true,
+    gitStatus: false,
+    gitInfoPosition: 'above',
+    model: true,
+    modelFormat: 'versioned',
+    omcLabel: false,
+    updateNotification: false,
+    rateLimits: true,
+    ralph: true,
+    autopilot: true,
+    prdStory: true,
+    activeSkills: false,
+    lastSkill: true,
+    contextBar: true,
+    agents: true,
+    agentsFormat: 'tasks',
+    agentsMaxLines: 0,
+    backgroundTasks: true,
+    todos: true,
+    permissionStatus: false,
+    thinking: false,
+    thinkingFormat: 'text',
+    apiKeySource: false,
+    hostname: false,
+    profile: false,
+    missionBoard: false,
+    promptTime: false,
+    sessionHealth: false,
+    showSessionDuration: false,
+    showHealthIndicator: false,
+    showTokens: false,
+    useBars: false,
+    meterStyle: 'dots',
+    healthSigil: true,
+    githubUser: true,
+    effort: true,
+    showCallCounts: true,
+    showLastTool: false,
+    sessionSummary: false,
+    maxOutputLines: 5,
+    // Glyph-based design: render the real glyphs on macOS/Linux. The ASCII
+    // fallback still fires on explicit safeMode:true or on Windows (win32).
+    safeMode: false,
   },
 };

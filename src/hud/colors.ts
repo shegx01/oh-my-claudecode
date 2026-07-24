@@ -16,6 +16,7 @@ const BLUE = '\x1b[34m';
 const MAGENTA = '\x1b[35m';
 const CYAN = '\x1b[36m';
 const WHITE = '\x1b[37m';
+const GREY = '\x1b[90m';
 const BRIGHT_BLUE = '\x1b[94m';
 const BRIGHT_MAGENTA = '\x1b[95m';
 const BRIGHT_CYAN = '\x1b[96m';
@@ -58,6 +59,10 @@ export function bold(text: string): string {
 
 export function white(text: string): string {
   return `${WHITE}${text}${RESET}`;
+}
+
+export function grey(text: string): string {
+  return `${GREY}${text}${RESET}`;
 }
 
 export function brightCyan(text: string): string {
@@ -158,6 +163,26 @@ export function coloredBar(percent: number, width: number = 10): string {
 
   const color = getContextColor(safePercent);
   return `${color}${'█'.repeat(filled)}${DIM}${'░'.repeat(empty)}${RESET}`;
+}
+
+/**
+ * Create a dot-style meter: filled dots (ramp color) + empty dots (dim).
+ * Used by the `stacked` preset for compact vitals (● ● ● ○ ○).
+ *
+ * @param percent - 0-100 usage percentage (high = more filled)
+ * @param cells - Total number of dots (default 5)
+ * @param colorCode - ANSI color code for filled dots (default = context ramp)
+ * @returns Rendered dot meter with trailing RESET
+ */
+export function dotMeter(percent: number, cells: number = 5, colorCode?: string): string {
+  const safeCells = Number.isFinite(cells) ? Math.max(0, Math.round(cells)) : 0;
+  const safePercent = Number.isFinite(percent)
+    ? Math.min(100, Math.max(0, percent))
+    : 0;
+  const filled = Math.max(0, Math.min(safeCells, Math.round((safePercent / 100) * safeCells)));
+  const empty = safeCells - filled;
+  const color = colorCode ?? getContextColor(safePercent);
+  return `${color}${'●'.repeat(filled)}${RESET}${DIM}${'○'.repeat(empty)}${RESET}`;
 }
 
 /**
