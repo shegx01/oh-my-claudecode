@@ -57,6 +57,7 @@ export function buildDefaultConfig(): PluginConfig {
       verifier: { model: defaultTierModels.MEDIUM },
       securityReviewer: { model: defaultTierModels.MEDIUM },
       codeReviewer: { model: defaultTierModels.HIGH },
+      multiAxisReviewer: { model: defaultTierModels.HIGH },
       testEngineer: { model: defaultTierModels.MEDIUM },
       designer: { model: defaultTierModels.MEDIUM },
       writer: { model: defaultTierModels.LOW },

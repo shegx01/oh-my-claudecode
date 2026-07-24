@@ -98,8 +98,23 @@ describe('Ralph PRD-Mandatory', () => {
       expect(detectCriticModeFlag('ralph --critic codex fix this')).toBe('codex');
     });
 
+    it('detects --critic=multi-axis-reviewer', () => {
+      expect(detectCriticModeFlag('ralph --critic=multi-axis-reviewer fix this')).toBe('multi-axis-reviewer');
+    });
+
     it('returns null for invalid critic mode', () => {
       expect(detectCriticModeFlag('ralph --critic=gemini fix this')).toBeNull();
+    });
+  });
+
+  describe('default critic mode', () => {
+    it('defaults ralph completion review to multi-axis-reviewer', () => {
+      const hook = createRalphLoopHook(testDir);
+      hook.startLoop(undefined, 'fix this bug');
+
+      const state = readRalphState(testDir);
+      expect(state).not.toBeNull();
+      expect(state!.critic_mode).toBe('multi-axis-reviewer');
     });
   });
 

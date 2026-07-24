@@ -25,7 +25,7 @@ The `swarm` compatibility alias was removed in #1131.
 - **N** - Number of teammate agents (1-20). Optional; defaults to auto-sizing based on task decomposition.
 - **agent-type** - OMC agent to spawn for the `team-exec` stage (e.g., executor, debugger, designer, codex, gemini, antigravity). Optional; defaults to stage-aware routing. Use `codex` to spawn Codex CLI workers, `gemini` for Gemini CLI workers (enterprise/API-key tier), or `antigravity` for Antigravity CLI (`agy`) workers (Google's successor to the Gemini CLI; requires respective CLIs installed). See Stage Agent Routing below.
 - **task** - High-level task to decompose and distribute among teammates
-- **ralph** - Optional modifier. When present, wraps the team pipeline in Ralph's persistence loop (retry on failure, architect verification before completion). See Team + Ralph Composition below.
+- **ralph** - Optional modifier. When present, wraps the team pipeline in Ralph's persistence loop (retry on failure, ralph's Step-7 reviewer verification — default `multi-axis-reviewer` — before completion). See Team + Ralph Composition below.
 
 ### Examples
 
@@ -107,15 +107,15 @@ Each pipeline stage uses **specialized agents** -- not just executors. The lead 
 | **team-plan**   | `explore` (haiku), `planner` (opus) | `analyst` (opus), `architect` (opus)                                                                    | Use `analyst` for unclear requirements. Use `architect` for systems with complex boundaries.                                                                                                      |
 | **team-prd**    | `analyst` (opus)                    | `critic` (opus)                                                                                         | Use `critic` to challenge scope.                                                                                                                                                                  |
 | **team-exec**   | `executor` (sonnet)                 | `executor` (opus), `debugger` (sonnet), `designer` (sonnet), `writer` (haiku), `test-engineer` (sonnet) | Match agent to subtask type. Use `executor` (model=opus) for complex autonomous work, `designer` for UI, `debugger` for compilation issues, `writer` for docs, `test-engineer` for test creation. |
-| **team-verify** | `verifier` (sonnet)                 | `test-engineer` (sonnet), `security-reviewer` (sonnet), `code-reviewer` (opus)                          | Always run `verifier`. Add `security-reviewer` for auth/crypto changes. Add `code-reviewer` for >20 files or architectural changes. `code-reviewer` also covers style/formatting checks.          |
+| **team-verify** | `multi-axis-reviewer` (opus)         | `test-engineer` (sonnet)                                                                                | Always run `multi-axis-reviewer`. Its correctness/tests/security axes subsume the standalone `verifier`, `code-reviewer`, and `security-reviewer` passes. Add `test-engineer` only when new tests must be authored (a writing task, not review).          |
 | **team-fix**    | `executor` (sonnet)                 | `debugger` (sonnet), `executor` (opus)                                                                  | Use `debugger` for type/build errors and regression isolation. Use `executor` (model=opus) for complex multi-file fixes.                                                                          |
 
 **Routing rules:**
 
 1. **The lead picks agents per stage, not the user.** The user's `N:agent-type` parameter only overrides the `team-exec` stage worker type. All other stages use stage-appropriate specialists.
 2. **Specialist agents complement executor agents.** Route analysis/review to architect/critic Claude agents and UI work to designer agents. Tmux CLI workers are one-shot and don't participate in team communication.
-3. **Cost mode affects model tier.** In downgrade: `opus` agents to `sonnet`, `sonnet` to `haiku` where quality permits. `team-verify` always uses at least `sonnet`.
-4. **Risk level escalates review.** Security-sensitive or >20 file changes must include `security-reviewer` + `code-reviewer` (opus) in `team-verify`.
+3. **Cost mode affects model tier.** In downgrade: `opus` agents to `sonnet`, `sonnet` to `haiku` where quality permits. `team-verify` runs `multi-axis-reviewer` (opus) and is not downgraded below `sonnet`.
+4. **Risk level scales the axis count, not the reviewer set.** `multi-axis-reviewer` already covers security and quality on every run. For security-sensitive or >20 file changes, run the full 8-axis set; for small changes, 6 axes is acceptable. Fidelity per axis never drops — only the number of axes.
 
 ### Stage Entry/Exit Criteria
 
@@ -133,8 +133,9 @@ Each pipeline stage uses **specialized agents** -- not just executors. The lead 
   - Exit: execution tasks reach terminal state for the current pass.
 - **team-verify**
   - Entry: execution pass finishes.
-  - Agents: `verifier` + task-appropriate reviewers (see routing table).
-  - **Verify agent input (diff-scoped):** Pass the verify agent `git diff` (output of `git diff HEAD~1..HEAD` or the relevant commit range), the changed-file list, and the acceptance criteria. Do NOT pass full team state or the entire conversation history. The verifier uses only this scoped input to render its verdict.
+  - Agents: `multi-axis-reviewer` (see routing table).
+  - **Verify agent input (diff-scoped):** Pass the reviewer `git diff` (output of `git diff HEAD~1..HEAD` or the relevant commit range), the changed-file list, and the acceptance criteria. Do NOT pass full team state or the entire conversation history. `multi-axis-reviewer` uses only this scoped input to fan out its per-axis critic passes and render one consolidated verdict.
+  - **Diff-size → axis-count signal (mirror ralph):** Pass the reviewer the diff-size signal so it can right-size its axis set. Default lean to 6 axes; escalate to the full 8-axis set when the change touches **>20 files OR is security-sensitive** (auth, crypto, payments, dependency bumps). Security-sensitive changes MUST use the full 8-axis set — axis 5 now carries the full security-reviewer checklist, which restores the guaranteed security depth that dropping the standalone `security-reviewer` pass removed.
   - Exit (pass): verification gates pass with no required follow-up.
   - Exit (fail): fix tasks are generated and control moves to `team-fix`.
 - **team-fix**
@@ -622,7 +623,7 @@ Detailed CLI-worker / routing / gotchas reference: `skills/team/REFERENCE.md` (l
 When the user invokes `/team ralph`, says "team ralph", or combines both keywords, team mode wraps itself in Ralph's persistence loop. This provides:
 
 - **Team orchestration** -- multi-agent staged pipeline with specialized agents per stage
-- **Ralph persistence** -- retry on failure, architect verification before completion, iteration tracking
+- **Ralph persistence** -- retry on failure, ralph's Step-7 reviewer verification (default `multi-axis-reviewer`) before completion, iteration tracking
 
 ### Activation
 
@@ -655,9 +656,9 @@ state_write(mode="ralph", active=true, iteration=1, max_iterations=10, current_p
 
 1. Ralph outer loop starts (iteration 1)
 2. Team pipeline runs: `team-plan -> team-prd -> team-exec -> team-verify`
-3. If `team-verify` passes: Ralph runs architect verification (STANDARD tier minimum)
-4. If architect approves: both modes complete, run `/oh-my-claudecode:cancel`
-5. If `team-verify` fails OR architect rejects: team enters `team-fix`, then loops back to `team-exec -> team-verify`
+3. If `team-verify` passes: Ralph runs its Step-7 reviewer verification (default `multi-axis-reviewer`, opus)
+4. If the reviewer returns APPROVE: both modes complete, run `/oh-my-claudecode:cancel`
+5. If `team-verify` fails OR the reviewer returns REQUEST-CHANGES/INCONCLUSIVE: team enters `team-fix`, then loops back to `team-exec -> team-verify`
 6. If fix loop exceeds `max_fix_loops`: Ralph increments iteration and retries the full pipeline
 7. If Ralph exceeds `max_iterations`: terminal `failed` state
 

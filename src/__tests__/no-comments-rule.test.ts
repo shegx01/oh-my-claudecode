@@ -7,7 +7,7 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const CODE_WRITERS = ['executor', 'debugger', 'test-engineer', 'code-simplifier', 'designer', 'git-master'];
 const GATE_SURFACES = ['code-reviewer', 'verifier'];
-const NON_WRITERS = ['analyst', 'planner', 'architect', 'writer', 'qa-tester', 'scientist', 'critic', 'document-specialist'];
+const NON_WRITERS = ['analyst', 'planner', 'architect', 'writer', 'qa-tester', 'scientist', 'critic', 'document-specialist', 'multi-axis-reviewer'];
 
 function readAgentMd(name: string): string {
   return readFileSync(join(REPO_ROOT, 'agents', `${name}.md`), 'utf-8');

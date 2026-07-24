@@ -1,7 +1,7 @@
 ---
 name: ralph
 description: Self-referential loop until task completion with configurable verification reviewer
-argument-hint: "[--no-deslop] [--critic=architect|critic|codex] <task description>"
+argument-hint: "[--no-deslop] [--critic=multi-axis-reviewer|architect|critic|codex] <task description>"
 level: 4
 ---
 
@@ -46,7 +46,7 @@ By default, ralph operates in PRD mode. A scaffold `prd.json` is auto-generated 
 
 **Deslop opt-out:** If `{{PROMPT}}` contains `--no-deslop`, skip the mandatory post-review deslop pass entirely. Use this only when the cleanup pass is intentionally out of scope for the run.
 
-**Reviewer selection:** Pass `--critic=architect`, `--critic=critic`, or `--critic=codex` in the Ralph prompt to choose the completion reviewer for that run. `architect` remains the default.
+**Reviewer selection:** Pass `--critic=multi-axis-reviewer`, `--critic=architect`, `--critic=critic`, or `--critic=codex` in the Ralph prompt to choose the completion reviewer for that run. `multi-axis-reviewer` is the default.
 </PRD_Mode>
 
 <Execution_Policy>
@@ -103,19 +103,23 @@ By default, ralph operates in PRD mode. A scaffold `prd.json` is auto-generated 
 6. **Check PRD completion**:
    a. Read the active PRD file -- are ALL stories marked `passes: true`?
    b. If NOT all complete, loop back to Step 2 (pick next story)
-   c. If ALL complete, proceed to Step 7 (architect verification)
+   c. If ALL complete, proceed to Step 7 (reviewer verification)
 
-7. **Reviewer verification** (tiered, against acceptance criteria):
-   - <5 files, <100 lines with full tests: STANDARD tier minimum (architect-medium / Sonnet)
-   - Standard changes: STANDARD tier (architect-medium / Sonnet)
-   - > 20 files or security/architectural changes: THOROUGH tier (architect / Opus)
+7. **Reviewer verification** (multi-axis by default, against acceptance criteria):
+   - Default reviewer: `multi-axis-reviewer` (Opus). It fans out one full `critic` pass per axis and returns a single consolidated verdict.
+   - **Diff-size tiering scales the AXIS COUNT, never the per-axis fidelity:**
+     - <5 files, <100 lines with full tests: 6 axes (lean set)
+     - Standard changes: 6-8 axes
+     - > 20 files or security/architectural changes: 8 axes (full set)
+     - Each axis is always a genuine, full critic pass — fidelity per axis never drops, only the number of axes changes.
+   - If `--critic=architect`, use the Claude `architect` agent for the approval pass
    - If `--critic=critic`, use the Claude `critic` agent for the approval pass
    - If `--critic=codex`, run `omc ask codex --agent-prompt critic "..."` for the approval pass. The Codex critic prompt MUST include:
      1. The full list of acceptance criteria from prd.json for verification
      2. A directive to evaluate whether the implementation is **OPTIMAL** — not just correct, but whether there exists a meaningfully better approach (simpler, faster, more maintainable) that the implementation missed
      3. A directive to review **all code related to the changes** (callers, callees, shared types, adjacent modules), not only the files directly modified
      4. The list of files changed during the ralph session for context
-   - Ralph floor: always at least STANDARD, even for small changes
+   - Ralph floor: always run at least the 6-axis lean set, even for small changes
    - The selected reviewer verifies against the SPECIFIC acceptance criteria from prd.json, not vague "is it done?"
    - **On APPROVAL: immediately proceed to Step 7.5 in the same turn. Do NOT pause to report the verdict to the user — reporting happens only at Step 8 (`/oh-my-claudecode:cancel`) or on rejection (Step 9). Treating an approved verdict as a reporting checkpoint is a polite-stop anti-pattern.**
 
@@ -145,7 +149,8 @@ By default, ralph operates in PRD mode. A scaffold `prd.json` is auto-generated 
 
 <Tool_Usage>
 
-- Use `Task(subagent_type="oh-my-claudecode:architect", ...)` for architect verification cross-checks when changes are security-sensitive, architectural, or involve complex multi-system integration
+- Use `Task(subagent_type="oh-my-claudecode:multi-axis-reviewer", ...)` for Step 7 reviewer verification by default — one call runs the per-axis critic passes (6 axes for small changes, 8 for large/security) and returns a single verdict
+- Use `Task(subagent_type="oh-my-claudecode:architect", ...)` for architect verification cross-checks when `--critic=architect`, or when changes are security-sensitive, architectural, or involve complex multi-system integration
 - Use `Task(subagent_type="oh-my-claudecode:critic", ...)` when `--critic=critic`
 - Use `omc ask codex --agent-prompt critic "..."` when `--critic=codex`. Construct the prompt to include: (a) prd.json acceptance criteria, (b) files changed + related files, (c) explicit optimality question: "Is there a meaningfully simpler, faster, or more maintainable approach that achieves the same acceptance criteria?"
 - Skip architect consultation for simple feature additions, well-tested changes, or time-critical verification

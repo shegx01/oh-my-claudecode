@@ -58,6 +58,7 @@ export {
 export {
   securityReviewerAgent,
   codeReviewerAgent,
+  multiAxisReviewerAgent,
   gitMasterAgent,
   codeSimplifierAgent
 } from './definitions.js';

@@ -80,6 +80,7 @@ export interface PluginConfig {
     verifier?: { model?: string };
     securityReviewer?: { model?: string };
     codeReviewer?: { model?: string };
+    multiAxisReviewer?: { model?: string };
     testEngineer?: { model?: string };
     designer?: { model?: string };
     writer?: { model?: string };
@@ -496,6 +497,7 @@ export const KNOWN_AGENT_NAMES = [
   'verifier',
   'securityReviewer',
   'codeReviewer',
+  'multiAxisReviewer',
   'testEngineer',
   'designer',
   'writer',

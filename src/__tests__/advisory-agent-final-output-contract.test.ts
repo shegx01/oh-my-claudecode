@@ -57,3 +57,30 @@ describe('advisory agent final output contract', () => {
     expect(prompt).toMatch(forbiddenSignoffPattern);
   });
 });
+
+// multi-axis-reviewer carries its own <Final_Response_Contract> phrasing (the
+// consolidated verdict is the deliverable), so it is enrolled with the markers
+// that appear verbatim in agents/multi-axis-reviewer.md rather than the shared
+// advisory-agent marker set above.
+const multiAxisReviewerMarkers = [
+  '<Final_Response_Contract>',
+  'Your LAST assistant message IS the deliverable surfaced to the calling workflow',
+  'Do not end with a content-free sign-off',
+  'repeat the full consolidated result in that final message',
+];
+
+describe('multi-axis-reviewer final output contract', () => {
+  test('prompt file requires the consolidated-verdict final response contract', () => {
+    const prompt = agentPrompt('multi-axis-reviewer');
+    for (const marker of multiAxisReviewerMarkers) {
+      expect(prompt, `multi-axis-reviewer prompt should include ${marker}`).toContain(marker);
+    }
+  });
+
+  test('registry prompt includes the final response contract', () => {
+    const prompt = getAgentDefinitions()['multi-axis-reviewer']?.prompt ?? '';
+    for (const marker of multiAxisReviewerMarkers) {
+      expect(prompt, `multi-axis-reviewer registry prompt should include ${marker}`).toContain(marker);
+    }
+  });
+});

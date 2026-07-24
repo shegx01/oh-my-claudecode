@@ -25,8 +25,9 @@ describe('Cleanup Validation', () => {
     expect('DEPRECATED_KEYWORD_PATTERNS' in keywordModule).toBe(false);
   });
 
-  it('PluginConfig.agents matches 19-agent registry + omc', async () => {
+  it('PluginConfig.agents matches 20-agent registry + omc', async () => {
     const { DEFAULT_CONFIG } = await import('../config/loader.js');
+    const { getAgentDefinitions } = await import('../agents/definitions.js');
     const agentKeys = Object.keys(DEFAULT_CONFIG.agents || {});
     expect(agentKeys).toContain('omc');
     expect(agentKeys).toContain('explore');
@@ -35,6 +36,7 @@ describe('Cleanup Validation', () => {
     expect(agentKeys).toContain('documentSpecialist');
     expect(agentKeys).toContain('critic');
     expect(agentKeys).toContain('tracer');
+    expect(agentKeys).toContain('multiAxisReviewer');
     // Stale entries should NOT be present
     expect(agentKeys).not.toContain('frontendEngineer');
     expect(agentKeys).not.toContain('documentWriter');
@@ -44,12 +46,20 @@ describe('Cleanup Validation', () => {
     expect(agentKeys).not.toContain('qualityReviewer');
     expect(agentKeys).not.toContain('deepExecutor');
     expect(agentKeys).not.toContain('buildFixer');
+
+    // Enforce full parity: config keys == registry (kebab-case) keys + the
+    // orchestration-only `omc` entry (which has no standalone .md agent).
+    const toCamel = (name: string) => name.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+    const registryKeys = Object.keys(getAgentDefinitions());
+    const expectedConfigKeys = new Set(['omc', ...registryKeys.map(toCamel)]);
+    expect(new Set(agentKeys)).toEqual(expectedConfigKeys);
+    expect(agentKeys).toHaveLength(registryKeys.length + 1);
   });
 
-  it('agent registry has 19 agents', async () => {
+  it('agent registry has 20 agents', async () => {
     const { getAgentDefinitions } = await import('../agents/definitions.js');
     const defs = getAgentDefinitions();
-    expect(Object.keys(defs)).toHaveLength(19);
+    expect(Object.keys(defs)).toHaveLength(20);
     expect(defs).toHaveProperty('tracer');
   });
 });

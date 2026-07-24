@@ -111,7 +111,7 @@ export interface RalphLoopState {
   critic_mode?: RalphCriticMode;
 }
 
-export const RALPH_CRITIC_MODES = ['architect', 'critic', 'codex'] as const;
+export const RALPH_CRITIC_MODES = ['architect', 'critic', 'codex', 'multi-axis-reviewer'] as const;
 export type RalphCriticMode = typeof RALPH_CRITIC_MODES[number];
 
 export interface RalphLoopOptions {
@@ -134,7 +134,7 @@ export interface RalphLoopHook {
 }
 
 const DEFAULT_MAX_ITERATIONS = 10;
-const DEFAULT_RALPH_CRITIC_MODE: RalphCriticMode = 'architect';
+const DEFAULT_RALPH_CRITIC_MODE: RalphCriticMode = 'multi-axis-reviewer';
 
 /**
  * Read Ralph Loop state from disk
