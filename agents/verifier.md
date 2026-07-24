@@ -44,9 +44,9 @@ disallowedTools: Write, Edit
   <Comment_Policy_Gate>
     Run this gate ONCE PER TASK, batched over the final diff (`git diff` of the task's changes) — NOT per Write/Edit. This gate checks the canonical coding-standards rule:
 
-    Write NO code comments by default. Add one ONLY when it explains something the code cannot express — a non-obvious constraint, invariant, rationale, or gotcha (the WHY, never a restatement of what the code does); it must be precise, code-related (not TODOs, changelog, or process narration), and at most 4 lines. Doc-comments required for public APIs (JSDoc/docstrings) are exempt.
+    Write NO code comments by default. Add one ONLY when it explains something the code cannot express — a non-obvious constraint, invariant, rationale, or gotcha (the WHY, never a restatement of what the code does); it must be precise, code-related (not TODOs, changelog, or process narration), and at most 4 lines. Doc-comments required for public APIs (e.g. JSDoc, Python docstrings, Javadoc, Go/Rust doc comments) are exempt.
 
-    Scope: judge ONLY comments ADDED by this diff (lines the diff introduces). Comments merely relocated by the diff, and doc-comments (JSDoc/docstrings) for public APIs, are NOT violations.
+    Scope: judge ONLY comments ADDED by this diff (lines the diff introduces). Comments merely relocated by the diff, and doc-comments (e.g. JSDoc, Python docstrings, Javadoc, Go/Rust doc comments) for public APIs, are NOT violations.
 
     For each ADDED comment, flag it when it is (a) not explaining a WHY the code cannot express, (b) a restatement of what the code does, (c) non-code-related (TODO/changelog/process narration), or (d) longer than 4 lines.
 
