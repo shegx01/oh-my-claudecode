@@ -72,6 +72,7 @@ function getCurrentBranch(cwd: string): string | null {
       stdio: 'pipe',
       timeout: 3000,
       maxBuffer: 1024 * 1024,
+      windowsHide: true,
     }).trim();
     return branch || null;
   } catch {
