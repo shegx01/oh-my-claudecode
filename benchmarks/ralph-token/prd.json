@@ -1,0 +1,43 @@
+{
+  "version": "1.0",
+  "task": "Ralph-token benchmark toy task: implement three trivial, deterministic string helpers against the scratch fixture, each in its own file, each with a matching micro-test.",
+  "notes": "Canned, self-contained 3-story PRD used ONLY by the ralph-token benchmark. Stable and deterministic on purpose: the stories are small enough that a single ralph iteration handles each, and the acceptance criteria are exact so a real ralph run converges the same way every time. Do NOT edit to add scope — variance control depends on this staying fixed.",
+  "stories": [
+    {
+      "id": "US-001",
+      "title": "Add slugify helper",
+      "description": "Create benchmarks/ralph-token/fixtures/scratch/slugify.ts exporting `slugify(input: string): string` that lowercases the input, trims it, and replaces every run of non-alphanumeric characters with a single hyphen, stripping leading/trailing hyphens.",
+      "acceptanceCriteria": [
+        "File benchmarks/ralph-token/fixtures/scratch/slugify.ts exists and exports a function `slugify`.",
+        "slugify('Hello World') === 'hello-world'.",
+        "slugify('  Foo__Bar!!  ') === 'foo-bar'.",
+        "A test file benchmarks/ralph-token/fixtures/scratch/slugify.test.ts exists and passes."
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-002",
+      "title": "Add titleCase helper",
+      "description": "Create benchmarks/ralph-token/fixtures/scratch/title-case.ts exporting `titleCase(input: string): string` that uppercases the first letter of each whitespace-separated word and lowercases the rest.",
+      "acceptanceCriteria": [
+        "File benchmarks/ralph-token/fixtures/scratch/title-case.ts exists and exports a function `titleCase`.",
+        "titleCase('hello world') === 'Hello World'.",
+        "titleCase('tHE quICK bROWN') === 'The Quick Brown'.",
+        "A test file benchmarks/ralph-token/fixtures/scratch/title-case.test.ts exists and passes."
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-003",
+      "title": "Add truncate helper",
+      "description": "Create benchmarks/ralph-token/fixtures/scratch/truncate.ts exporting `truncate(input: string, max: number): string` that returns the input unchanged when its length is <= max, otherwise returns the first (max - 1) characters followed by a single ellipsis character.",
+      "acceptanceCriteria": [
+        "File benchmarks/ralph-token/fixtures/scratch/truncate.ts exists and exports a function `truncate`.",
+        "truncate('hello', 10) === 'hello'.",
+        "truncate('hello world', 8) === 'hello w…'.",
+        "A test file benchmarks/ralph-token/fixtures/scratch/truncate.test.ts exists and passes."
+      ],
+      "passes": false
+    }
+  ]
+}

@@ -24,6 +24,12 @@ export {
   OPEN_QUESTIONS_PATH
 } from './utils.js';
 
+export {
+  buildRepoBrief,
+  REPO_BRIEF_TOKEN_CAP
+} from './preamble.js';
+export type { RepoBriefOptions } from './preamble.js';
+
 // Individual agent exports
 export { architectAgent, ARCHITECT_PROMPT_METADATA } from './architect.js';
 export { exploreAgent, EXPLORE_PROMPT_METADATA } from './explore.js';

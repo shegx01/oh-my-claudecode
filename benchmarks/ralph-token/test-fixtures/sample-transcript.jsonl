@@ -1,0 +1,7 @@
+{"type":"user","message":{"role":"user","content":"kick off the toy task"}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"working on US-001"}],"usage":{"input_tokens":100,"output_tokens":40,"cache_creation_input_tokens":10,"cache_read_input_tokens":5}}}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"ok"}]}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"working on US-002"}],"usage":{"input_tokens":200,"output_tokens":60,"cache_creation_input_tokens":0,"cache_read_input_tokens":50}}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"no usage payload on this one"}]}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"working on US-003"}],"usage":{"input_tokens":300,"output_tokens":80,"cache_read_input_tokens":100}}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"bad usage values are ignored"}],"usage":{"input_tokens":"not-a-number","output_tokens":null}}}
