@@ -6598,13 +6598,6 @@ var init_loader = __esm({
   }
 });
 
-// src/agents/coding-standards.ts
-var init_coding_standards = __esm({
-  "src/agents/coding-standards.ts"() {
-    "use strict";
-  }
-});
-
 // src/agents/architect.ts
 var ARCHITECT_PROMPT_METADATA, architectAgent;
 var init_architect = __esm({
@@ -7129,7 +7122,6 @@ var init_definitions = __esm({
     init_loader();
     init_models();
     init_skininthegamebros_guidance();
-    init_coding_standards();
     init_architect();
     init_designer();
     init_writer();

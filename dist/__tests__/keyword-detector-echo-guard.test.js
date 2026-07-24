@@ -108,7 +108,7 @@ describe('keyword-detector.mjs — pasted system-echo re-entry guard', () => {
     it('STILL activates ralph for an explicit user request', () => {
         const cwd = makeCwd('kd-echo-real-invocation-');
         const sid = 'sess-real-ralph';
-        const output = runKeywordDetector('/ralph 이 문제 계속 고쳐주세요', cwd, sid);
+        const output = runKeywordDetector('ralph로 이 문제 계속 고쳐주세요', cwd, sid);
         const context = output.hookSpecificOutput?.additionalContext ?? '';
         expect(output.continue).toBe(true);
         expect(context).toContain('[MAGIC KEYWORD: RALPH]');
@@ -123,7 +123,7 @@ describe('keyword-detector.mjs — pasted system-echo re-entry guard', () => {
     it('STILL activates ralph for a user prompt that starts with "Task:" (no echo header)', () => {
         const cwd = makeCwd('kd-task-standalone-');
         const sid = 'sess-task-standalone';
-        const output = runKeywordDetector('Task: run ralph on 이 문제 계속 고쳐주세요', cwd, sid);
+        const output = runKeywordDetector('Task: ralph로 이 문제 계속 고쳐주세요', cwd, sid);
         const context = output.hookSpecificOutput?.additionalContext ?? '';
         expect(context).toContain('[MAGIC KEYWORD: RALPH]');
         expect(existsSync(stateFile(cwd, sid, 'ralph'))).toBe(true);
@@ -142,7 +142,7 @@ describe('keyword-detector.mjs — pasted system-echo re-entry guard', () => {
         const prompt = [
             '[RALPH LOOP - ITERATION 2/100] Work is NOT done.',
             'Task: previous task',
-            'run ralph on 새 작업 계속 진행',
+            'ralph로 새 작업 계속 진행',
         ].join('\n');
         const output = runKeywordDetector(prompt, cwd, sid);
         const context = output.hookSpecificOutput?.additionalContext ?? '';
@@ -166,7 +166,7 @@ describe('keyword-detector.mjs — pasted system-echo re-entry guard', () => {
             '[RALPH LOOP - ITERATION 4/100] Work is NOT done.',
             'Task: previous task',
             '',
-            'run ralph on 새 작업 계속해줘',
+            'ralph로 새 작업 계속해줘',
         ].join('\n');
         const output = runKeywordDetector(prompt, cwd, sid);
         const context = output.hookSpecificOutput?.additionalContext ?? '';
@@ -185,7 +185,7 @@ describe('keyword-detector.mjs — state.prompt sanitization', () => {
         const cwd = makeCwd('kd-prompt-len-');
         const sid = 'sess-prompt-len';
         const longTail = 'x'.repeat(2000);
-        const prompt = `/ralph 다음 긴 지시사항을 수행해주세요:\n${longTail}`;
+        const prompt = `ralph로 다음 긴 지시사항을 수행해주세요:\n${longTail}`;
         runKeywordDetector(prompt, cwd, sid);
         const path = stateFile(cwd, sid, 'ralph');
         expect(existsSync(path)).toBe(true);
@@ -196,7 +196,7 @@ describe('keyword-detector.mjs — state.prompt sanitization', () => {
     it('records awaiting_confirmation_set_at on ralph state (enables 2-min TTL)', () => {
         const cwd = makeCwd('kd-setat-ralph-');
         const sid = 'sess-setat-ralph';
-        runKeywordDetector('/ralph 시작해주세요', cwd, sid);
+        runKeywordDetector('ralph로 시작해주세요', cwd, sid);
         const path = stateFile(cwd, sid, 'ralph');
         expect(existsSync(path)).toBe(true);
         const state = JSON.parse(readFileSync(path, 'utf-8'));

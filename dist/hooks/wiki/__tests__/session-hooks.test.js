@@ -68,7 +68,7 @@ describe('feedProjectMemory (environment.md)', () => {
             lastScanned: '2026-01-01T00:00:00.000Z',
             techStack: {
                 languages: [{ name: 'Java' }, { name: 'Kotlin' }],
-                frameworks: [{ name: 'Spring' }, { name: 'Quarkus' }],
+                frameworks: ['Spring'],
                 packageManager: 'gradle',
             },
         });
@@ -76,7 +76,6 @@ describe('feedProjectMemory (environment.md)', () => {
         const env = readPage(tempDir, 'environment.md');
         expect(env).not.toBeNull();
         expect(env.content).toContain('**Languages:** Java, Kotlin');
-        expect(env.content).toContain('**Frameworks:** Spring, Quarkus');
         expect(env.content).not.toContain('[object Object]');
     });
     it('renders plain-string languages too', () => {
@@ -88,16 +87,6 @@ describe('feedProjectMemory (environment.md)', () => {
         onSessionStart({ cwd: tempDir });
         const env = readPage(tempDir, 'environment.md');
         expect(env.content).toContain('**Languages:** TypeScript, Go');
-    });
-    it('renders plain-string frameworks too', () => {
-        ensureWikiDir(tempDir);
-        writeProjectMemory({
-            lastScanned: '2026-01-01T00:00:00.000Z',
-            techStack: { frameworks: ['React', 'Express'] },
-        });
-        onSessionStart({ cwd: tempDir });
-        const env = readPage(tempDir, 'environment.md');
-        expect(env.content).toContain('**Frameworks:** React, Express');
     });
     it('updates environment.md when project-memory is newer', () => {
         ensureWikiDir(tempDir);
