@@ -42,16 +42,23 @@ function collectAddedLines(toolName, toolInput) {
   return [];
 }
 
-export function isCommentLine(line) {
+const DOC_COMMENT_PREFIXES = ['///', '//!', '/**', '"""', "'''"];
+const REGULAR_COMMENT_PREFIXES = ['//', '/*', '*/', '*', '#', '<!--', '--'];
+
+export function classifyCommentLine(line) {
   const trimmed = line.trim();
-  if (!trimmed) return false;
-  return (
-    trimmed.startsWith('//') ||
-    trimmed.startsWith('/*') ||
-    trimmed.startsWith('*') ||
-    trimmed.startsWith('*/') ||
-    trimmed.startsWith('#')
-  );
+  if (!trimmed) return null;
+  for (const prefix of DOC_COMMENT_PREFIXES) {
+    if (trimmed.startsWith(prefix)) return 'doc';
+  }
+  for (const prefix of REGULAR_COMMENT_PREFIXES) {
+    if (trimmed.startsWith(prefix)) return 'regular';
+  }
+  return null;
+}
+
+export function isCommentLine(line) {
+  return classifyCommentLine(line) !== null;
 }
 
 export function analyzeComments(lines) {
@@ -59,18 +66,24 @@ export function analyzeComments(lines) {
   const longBlocks = [];
   let blockStart = -1;
   let blockLen = 0;
+  let blockKind = null;
 
   const flushBlock = (endIndex) => {
-    if (blockLen > MAX_COMMENT_BLOCK_LINES) {
+    if (blockKind !== 'doc' && blockLen > MAX_COMMENT_BLOCK_LINES) {
       longBlocks.push({ start: blockStart, end: endIndex - 1, length: blockLen });
     }
     blockStart = -1;
     blockLen = 0;
+    blockKind = null;
   };
 
   lines.forEach((line, index) => {
-    if (isCommentLine(line)) {
-      if (blockStart === -1) blockStart = index;
+    const kind = classifyCommentLine(line);
+    if (kind) {
+      if (blockStart === -1) {
+        blockStart = index;
+        blockKind = kind;
+      }
       blockLen += 1;
       commentLines.push({ index, text: line.trim() });
     } else if (blockStart !== -1) {

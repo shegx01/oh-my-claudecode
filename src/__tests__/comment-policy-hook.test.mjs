@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { execSync } from 'child_process';
 import { join } from 'path';
 import process from 'process';
-import { analyzeComments, isCommentLine } from '../../scripts/comment-policy-check.mjs';
+import { analyzeComments, isCommentLine, classifyCommentLine } from '../../scripts/comment-policy-check.mjs';
 
 const SCRIPT_PATH = join(process.cwd(), 'scripts', 'comment-policy-check.mjs');
 const HARD_FLAG_MARKER = '[OMC COMMENT POLICY — HARD FLAG]';
@@ -41,6 +41,61 @@ describe('comment-policy-check: isCommentLine', () => {
 
   it('returns false for plain code lines', () => {
     expect(isCommentLine('const x = 1;')).toBe(false);
+  });
+});
+
+describe('comment-policy-check: multi-language detection', () => {
+  it('detects Rust doc comments (/// and //!)', () => {
+    expect(isCommentLine('/// rust doc')).toBe(true);
+    expect(isCommentLine('//! rust inner doc')).toBe(true);
+  });
+
+  it('detects Python docstring delimiters and HTML/SQL comments', () => {
+    expect(isCommentLine('"""docstring"""')).toBe(true);
+    expect(isCommentLine("'''docstring'''")).toBe(true);
+    expect(isCommentLine('<!-- html comment -->')).toBe(true);
+    expect(isCommentLine('-- sql/lua comment')).toBe(true);
+  });
+
+  it('does not treat <!DOCTYPE or plain code as comments', () => {
+    expect(isCommentLine('<!DOCTYPE html>')).toBe(false);
+    expect(isCommentLine('let y = x - 1;')).toBe(false);
+  });
+});
+
+describe('comment-policy-check: classifyCommentLine — doc vs regular', () => {
+  it('classifies doc-comment styles as doc', () => {
+    expect(classifyCommentLine('/// rust doc')).toBe('doc');
+    expect(classifyCommentLine('//! rust inner doc')).toBe('doc');
+    expect(classifyCommentLine('/** jsdoc open')).toBe('doc');
+    expect(classifyCommentLine('"""py docstring"""')).toBe('doc');
+  });
+
+  it('classifies ordinary comment styles as regular', () => {
+    expect(classifyCommentLine('// plain line')).toBe('regular');
+    expect(classifyCommentLine('/* block open')).toBe('regular');
+    expect(classifyCommentLine('# hash')).toBe('regular');
+    expect(classifyCommentLine('<!-- html -->')).toBe('regular');
+  });
+});
+
+describe('comment-policy-check: doc-comment exemption from hard flag', () => {
+  it('does NOT hard-flag a 6-line Rust /// doc block (exempt)', () => {
+    const block = Array.from({ length: 6 }, (_, i) => `/// doc line ${i + 1}`);
+    const { longBlocks } = analyzeComments(block);
+    expect(longBlocks).toHaveLength(0);
+  });
+
+  it('does NOT hard-flag a 6-line JSDoc /** block (exempt)', () => {
+    const block = ['/**', ' * line', ' * line', ' * line', ' * line', ' */'];
+    const { longBlocks } = analyzeComments(block);
+    expect(longBlocks).toHaveLength(0);
+  });
+
+  it('still hard-flags a 6-line regular // block (not exempt)', () => {
+    const block = Array.from({ length: 6 }, (_, i) => `// line ${i + 1}`);
+    const { longBlocks } = analyzeComments(block);
+    expect(longBlocks).toHaveLength(1);
   });
 });
 
