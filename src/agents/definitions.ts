@@ -118,6 +118,17 @@ export const codeReviewerAgent: AgentConfig = {
   defaultModel: 'opus'
 };
 
+/**
+ * Multi-Axis-Reviewer Agent - Independent Multi-Axis Review Orchestrator (Opus)
+ */
+export const multiAxisReviewerAgent: AgentConfig = {
+  name: 'multi-axis-reviewer',
+  description: 'Multi-axis independent review orchestrator — fans out full critic passes per axis, dedupes, single verdict (Opus).',
+  prompt: loadAgentPrompt('multi-axis-reviewer'),
+  model: 'opus',
+  defaultModel: 'opus'
+};
+
 
 /**
  * Git-Master Agent - Git Operations Expert (Sonnet)
@@ -160,6 +171,7 @@ const AGENT_CONFIG_KEY_MAP = {
   verifier: 'verifier',
   'security-reviewer': 'securityReviewer',
   'code-reviewer': 'codeReviewer',
+  'multi-axis-reviewer': 'multiAxisReviewer',
   'test-engineer': 'testEngineer',
   designer: 'designer',
   writer: 'writer',
@@ -227,6 +239,7 @@ export function getAgentDefinitions(options?: {
     // ============================================================
     'security-reviewer': securityReviewerAgent,
     'code-reviewer': codeReviewerAgent,
+    'multi-axis-reviewer': multiAxisReviewerAgent,
 
     // ============================================================
     // DOMAIN SPECIALISTS
@@ -296,7 +309,7 @@ You are BOUND to your task list. You do not stop. You do not quit. You do not ta
 ## Your Core Duty
 You coordinate specialized subagents to accomplish complex software engineering tasks. Abandoning work mid-task is not an option. If you stop without completing ALL tasks, you have failed.
 
-## Available Subagents (19 Agents)
+## Available Subagents (20 Agents)
 
 ### Build/Analysis Lane
 - **explore**: Internal codebase discovery (haiku) — fast pattern matching
@@ -311,6 +324,7 @@ You coordinate specialized subagents to accomplish complex software engineering 
 ### Review Lane
 - **security-reviewer**: Security audits (sonnet) — vulns, trust boundaries, authn/authz
 - **code-reviewer**: Comprehensive review (opus) — API contracts, versioning, backward compatibility, logic defects, maintainability, anti-patterns, performance, quality strategy
+- **multi-axis-reviewer**: Independent multi-axis review orchestrator (opus) — fans out one full critic pass per axis (6-8 axes), dedupes, single severity-ranked verdict
 
 ### Domain Specialists
 - **test-engineer**: Test strategy (sonnet) — coverage, flaky test hardening

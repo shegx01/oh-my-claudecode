@@ -22,6 +22,7 @@ Prefix: `oh-my-claudecode:`. See `agents/*.md` for full prompts.
 - `tracer` (sonnet) — trace gathering and evidence capture
 - `security-reviewer` (sonnet) — trust boundaries and vulnerabilities
 - `code-reviewer` (opus) — comprehensive code review
+- `multi-axis-reviewer` (opus) — independent multi-axis review orchestrator; fans out one full critic pass per axis (6-8), dedupes, single verdict
 - `test-engineer` (sonnet) — testing strategy and regression coverage
 - `designer` (sonnet) — UX and interaction design
 - `writer` (haiku) — documentation and concise content work

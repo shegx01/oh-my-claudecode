@@ -80,6 +80,7 @@ export interface PluginConfig {
     verifier?: { model?: string };
     securityReviewer?: { model?: string };
     codeReviewer?: { model?: string };
+    multiAxisReviewer?: { model?: string };
     testEngineer?: { model?: string };
     designer?: { model?: string };
     writer?: { model?: string };

@@ -104,11 +104,9 @@ V1 does not support `stageModels`, model routing, provider or role selection; in
    - Repeat up to 5 cycles
    - Stop early if the same error repeats 3 times (indicates a fundamental issue)
 
-5. **Phase 4 - Validation**: Multi-perspective review in parallel
-   - Architect: Functional completeness
-   - Security-reviewer: Vulnerability check
-   - Code-reviewer: Quality review
-   - All must approve; fix and re-validate on rejection
+5. **Phase 4 - Validation**: Single multi-axis-reviewer pass
+   - Multi-axis-reviewer: fans out one full critic pass per axis (correctness, logic, contracts, error handling, security, performance, simplicity, tests) and returns one consolidated verdict
+   - On REQUEST-CHANGES: fix the surfaced findings and re-validate until the verdict is APPROVE
 
 6. **Phase 5 - Cleanup**: Delete all state files on successful completion
    - Remove `.omc/state/autopilot-state.json`, `ralph-state.json`, `ultrawork-state.json`, `ultraqa-state.json`
@@ -116,9 +114,7 @@ V1 does not support `stageModels`, model routing, provider or role selection; in
 </Steps>
 
 <Tool_Usage>
-- Use `Task(subagent_type="oh-my-claudecode:architect", ...)` for Phase 4 architecture validation
-- Use `Task(subagent_type="oh-my-claudecode:security-reviewer", ...)` for Phase 4 security review
-- Use `Task(subagent_type="oh-my-claudecode:code-reviewer", ...)` for Phase 4 quality review
+- Use `Task(subagent_type="oh-my-claudecode:multi-axis-reviewer", ...)` for Phase 4 validation — one call runs the full multi-axis review (correctness, security, quality, tests) and returns a single verdict
 - Agents form their own analysis first, then spawn Claude Task agents for cross-validation
 - Never block on external tools; proceed with available agents if delegation fails
 </Tool_Usage>
