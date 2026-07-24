@@ -19,13 +19,24 @@ function shouldUseAscii(format = 'auto') {
         return false;
     return process.platform === 'win32' || isWSL();
 }
-function getIcons(format = 'auto', labels = DEFAULT_HUD_LABELS) {
+function getIcons(format = 'auto', labels = DEFAULT_HUD_LABELS, iconOverrides) {
     const useAscii = shouldUseAscii(format);
-    return {
+    const icons = {
         tool: useAscii ? `${labels.tool}:` : '\u{1F527}',
         agent: useAscii ? `${labels.agent}:` : '\u{1F916}',
         skill: useAscii ? `${labels.skill}:` : '\u26A1',
     };
+    // Emoji-path icon overrides (e.g. gear \u2699 for the stacked preset). Never
+    // applied in ASCII mode so custom glyphs cannot leak past the ASCII gate.
+    if (!useAscii && iconOverrides) {
+        if (iconOverrides.tool)
+            icons.tool = iconOverrides.tool;
+        if (iconOverrides.agent)
+            icons.agent = iconOverrides.agent;
+        if (iconOverrides.skill)
+            icons.skill = iconOverrides.skill;
+    }
+    return icons;
 }
 /**
  * Render call counts badge.
@@ -37,9 +48,9 @@ function getIcons(format = 'auto', labels = DEFAULT_HUD_LABELS) {
  * @param agentInvocations - Total Task/proxy_Task calls seen in transcript
  * @param skillUsages - Total Skill/proxy_Skill calls seen in transcript
  */
-export function renderCallCounts(toolCalls, agentInvocations, skillUsages, format = 'auto', labels = DEFAULT_HUD_LABELS) {
+export function renderCallCounts(toolCalls, agentInvocations, skillUsages, format = 'auto', labels = DEFAULT_HUD_LABELS, iconOverrides) {
     const parts = [];
-    const icons = getIcons(format, labels);
+    const icons = getIcons(format, labels, iconOverrides);
     if (toolCalls > 0) {
         parts.push(`${icons.tool}${toolCalls}`);
     }

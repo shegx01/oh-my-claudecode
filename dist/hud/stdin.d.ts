@@ -54,4 +54,19 @@ export declare function getRateLimitsFromStdin(stdin: StatuslineStdin): RateLimi
  */
 export declare function getModelId(stdin: StatuslineStdin): string | null;
 export declare function getModelName(stdin: StatuslineStdin): string | null;
+/**
+ * Get the GitHub user/owner from statusline stdin workspace metadata.
+ * Returns null when Claude Code does not provide a repo owner.
+ */
+export declare function getGithubUser(stdin: StatuslineStdin): string | null;
+/**
+ * Get the reasoning-effort level from statusline stdin.
+ * Returns null when Claude Code does not provide an effort selection.
+ */
+export declare function getReasoningEffort(stdin: StatuslineStdin): string | null;
+/**
+ * Get the fast-mode flag from statusline stdin.
+ * Returns false when Claude Code does not provide fast_mode.
+ */
+export declare function getFastMode(stdin: StatuslineStdin): boolean;
 //# sourceMappingURL=stdin.d.ts.map

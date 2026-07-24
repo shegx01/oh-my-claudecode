@@ -24322,6 +24322,7 @@ var KNOWN_AGENT_NAMES = [
   "verifier",
   "securityReviewer",
   "codeReviewer",
+  "multiAxisReviewer",
   "testEngineer",
   "designer",
   "writer",
@@ -24419,6 +24420,7 @@ function buildDefaultConfig() {
       verifier: { model: defaultTierModels.MEDIUM },
       securityReviewer: { model: defaultTierModels.MEDIUM },
       codeReviewer: { model: defaultTierModels.HIGH },
+      multiAxisReviewer: { model: defaultTierModels.HIGH },
       testEngineer: { model: defaultTierModels.MEDIUM },
       designer: { model: defaultTierModels.MEDIUM },
       writer: { model: defaultTierModels.LOW },
@@ -24535,6 +24537,10 @@ function buildDefaultConfig() {
     },
     autopilot: {
       execution: "solo"
+    },
+    branchGuard: {
+      enabled: false,
+      protectedBranches: ["main", "master", "develop"]
     },
     planOutput: {
       directory: ".omc/plans",

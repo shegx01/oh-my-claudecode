@@ -62,6 +62,27 @@ export declare function renderGitRepo(cwd?: string): string | null;
  */
 export declare function renderGitBranch(cwd?: string): string | null;
 /**
+ * Determine whether the working tree has uncommitted changes.
+ * Derived from the same porcelain status parse used elsewhere.
+ *
+ * @param cwd - Working directory
+ * @returns true when staged/modified/untracked changes exist, false when clean
+ */
+export declare function isGitDirty(cwd?: string): boolean;
+/**
+ * Render the worktree-aware branch segment used by the `stacked` preset.
+ *
+ * - Glyph: `⑂ ` inside a linked worktree, `⎇ ` otherwise.
+ * - When the worktree name equals the branch, show just the branch (cyan).
+ *   Otherwise show `worktree/branch` (worktree magenta, slash dim, branch cyan).
+ * - Trailing dirty flag: `*` (yellow) when dirty, `✓` (dim) when clean.
+ *
+ * @param cwd - Working directory
+ * @param safeMode - When true, use ASCII fallbacks (worktree: 'wt ', normal: '', clean: no glyph)
+ * @returns Formatted branch segment or null when not in a git repo
+ */
+export declare function renderStackedBranch(cwd?: string, safeMode?: boolean): string | null;
+/**
  * Get git working tree status counts.
  * Parses `git --no-optional-locks status --porcelain -b` for staged, modified, untracked,
  * ahead, and behind counts.

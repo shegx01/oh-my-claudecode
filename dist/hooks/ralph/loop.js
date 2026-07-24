@@ -50,9 +50,9 @@ export function isUltraQAActive(directory, sessionId) {
         return false;
     }
 }
-export const RALPH_CRITIC_MODES = ['architect', 'critic', 'codex'];
+export const RALPH_CRITIC_MODES = ['architect', 'critic', 'codex', 'multi-axis-reviewer'];
 const DEFAULT_MAX_ITERATIONS = 10;
-const DEFAULT_RALPH_CRITIC_MODE = 'architect';
+const DEFAULT_RALPH_CRITIC_MODE = 'multi-axis-reviewer';
 /**
  * Read Ralph Loop state from disk
  */

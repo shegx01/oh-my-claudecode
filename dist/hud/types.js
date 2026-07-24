@@ -67,14 +67,33 @@ export function resolveHudLabels(locale, labels) {
  * Used as fallback when no layout is configured.
  */
 export const DEFAULT_ELEMENT_ORDER = {
-    line1: ['hostname', 'cwd', 'gitRepo', 'gitBranch', 'gitStatus', 'apiKeySource', 'profile'],
+    line1: ['healthSigil', 'githubUser', 'hostname', 'cwd', 'gitRepo', 'gitBranch', 'gitStatus', 'apiKeySource', 'profile', 'effort'],
     main: [
         'omcLabel', 'model', 'enterpriseCost', 'rateLimits', 'customBuckets', 'permission', 'thinking',
         'promptTime', 'session', 'tokens', 'ralph', 'autopilot', 'prd',
         'skills', 'lastSkill', 'contextBar', 'agents', 'background',
         'callCounts', 'lastTool', 'sessionSummary',
     ],
-    detail: ['missionBoard', 'agents', 'contextWarning', 'payloadWarning', 'todos'],
+    detail: ['missionBoard', 'agents', 'contextWarning', 'payloadWarning', 'todos', 'activity'],
+};
+/**
+ * Layout for the `stacked` preset's 3-row design:
+ *   Row 1 (identity): health-sigil, @user, worktree/branch, dir, effort, last-skill
+ *   Row 2 (vitals):   model, ctx, 5h/wk limits, call counts
+ *   Row 3 (activity): ralph, autopilot, prd, agents, todos, background (inline-joined)
+ */
+export const STACKED_LAYOUT = {
+    line1: ['healthSigil', 'githubUser', 'gitBranch', 'cwd', 'effort', 'lastSkill'],
+    main: ['model', 'contextBar', 'rateLimits', 'callCounts'],
+    detail: ['activity'],
+};
+/**
+ * Optional per-preset element ordering. Applied at config-merge time only
+ * when the user has not supplied their own `layout`. Presets not listed here
+ * fall back to DEFAULT_ELEMENT_ORDER.
+ */
+export const PRESET_LAYOUTS = {
+    stacked: STACKED_LAYOUT,
 };
 export const DEFAULT_HUD_USAGE_POLL_INTERVAL_MS = 90 * 1000;
 export const DEFAULT_HUD_CONFIG = {
@@ -355,6 +374,55 @@ export const PRESET_CONFIGS = {
         sessionSummary: false, // Opt-in: sends transcript to claude -p
         maxOutputLines: 6,
         safeMode: true,
+    },
+    stacked: {
+        cwd: true,
+        cwdFormat: 'last',
+        useHyperlinks: false,
+        gitRepo: false,
+        gitBranch: true,
+        gitStatus: false,
+        gitInfoPosition: 'above',
+        model: true,
+        modelFormat: 'versioned',
+        omcLabel: false,
+        updateNotification: false,
+        rateLimits: true,
+        ralph: true,
+        autopilot: true,
+        prdStory: true,
+        activeSkills: false,
+        lastSkill: true,
+        contextBar: true,
+        agents: true,
+        agentsFormat: 'tasks',
+        agentsMaxLines: 0,
+        backgroundTasks: true,
+        todos: true,
+        permissionStatus: false,
+        thinking: false,
+        thinkingFormat: 'text',
+        apiKeySource: false,
+        hostname: false,
+        profile: false,
+        missionBoard: false,
+        promptTime: false,
+        sessionHealth: false,
+        showSessionDuration: false,
+        showHealthIndicator: false,
+        showTokens: false,
+        useBars: false,
+        meterStyle: 'dots',
+        healthSigil: true,
+        githubUser: true,
+        effort: true,
+        showCallCounts: true,
+        showLastTool: false,
+        sessionSummary: false,
+        maxOutputLines: 5,
+        // Glyph-based design: render the real glyphs on macOS/Linux. The ASCII
+        // fallback still fires on explicit safeMode:true or on Windows (win32).
+        safeMode: false,
     },
 };
 //# sourceMappingURL=types.js.map

@@ -6,6 +6,8 @@
  */
 export * from './types.js';
 export { createAgentToolRestrictions, mergeAgentConfig, buildDelegationTable, buildUseAvoidSection, createEnvContext, getAvailableAgents, buildKeyTriggersSection, validateAgentConfig, deepMerge, loadAgentPrompt, formatOpenQuestions, OPEN_QUESTIONS_PATH } from './utils.js';
+export { buildRepoBrief, REPO_BRIEF_TOKEN_CAP } from './preamble.js';
+export type { RepoBriefOptions } from './preamble.js';
 export { architectAgent, ARCHITECT_PROMPT_METADATA } from './architect.js';
 export { exploreAgent, EXPLORE_PROMPT_METADATA } from './explore.js';
 export { executorAgent, EXECUTOR_PROMPT_METADATA } from './executor.js';
@@ -20,6 +22,6 @@ export { tracerAgent, TRACER_PROMPT_METADATA } from './tracer.js';
 export { documentSpecialistAgent, DOCUMENT_SPECIALIST_PROMPT_METADATA } from './document-specialist.js';
 export { debuggerAgent, verifierAgent } from './definitions.js';
 export { testEngineerAgent } from './definitions.js';
-export { securityReviewerAgent, codeReviewerAgent, gitMasterAgent, codeSimplifierAgent } from './definitions.js';
+export { securityReviewerAgent, codeReviewerAgent, multiAxisReviewerAgent, gitMasterAgent, codeSimplifierAgent } from './definitions.js';
 export { getAgentDefinitions, omcSystemPrompt } from './definitions.js';
 //# sourceMappingURL=index.d.ts.map

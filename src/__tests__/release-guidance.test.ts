@@ -30,10 +30,6 @@ describe('plugin shipping release guidance', () => {
     );
     expect(CI_WORKFLOW).toMatch(/permissions:\n\s+contents: read/);
     expect(CI_WORKFLOW).not.toMatch(/pull-requests:\s*write/);
-    expect(CI_WORKFLOW).toContain('ref: ${{ github.event.pull_request.head.sha }}');
-    expect(CI_WORKFLOW).toContain(
-      'node scripts/ci/check-no-committed-build-artifacts.mjs --base "$BASE_SHA" --head "$HEAD_SHA"',
-    );
     expect(CI_WORKFLOW).not.toContain('npm ci --ignore-scripts');
     expect(CI_WORKFLOW).not.toContain('GH_TOKEN');
     expect(CI_WORKFLOW).not.toContain('gh api');

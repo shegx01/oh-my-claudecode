@@ -10,11 +10,11 @@ import { stringWidth, getCharWidth } from "../utils/string-width.js";
 import { renderRalph } from "./elements/ralph.js";
 import { renderAgentsByFormat, renderAgentsMultiLine, } from "./elements/agents.js";
 import { renderTodosWithCurrent } from "./elements/todos.js";
-import { renderSkills, renderLastSkill } from "./elements/skills.js";
-import { renderContext, renderContextWithBar } from "./elements/context.js";
+import { renderSkills, renderLastSkill, renderStackedLastSkill } from "./elements/skills.js";
+import { renderContext, renderContextWithBar, renderContextWithDots, } from "./elements/context.js";
 import { renderBackground } from "./elements/background.js";
 import { renderPrd } from "./elements/prd.js";
-import { renderRateLimits, renderRateLimitsWithBar, renderRateLimitsError, renderApiKeyUsageHint, renderCustomBuckets, } from "./elements/limits.js";
+import { renderRateLimits, renderRateLimitsWithBar, renderRateLimitsWithDots, renderRateLimitsError, renderApiKeyUsageHint, renderCustomBuckets, } from "./elements/limits.js";
 import { renderPermission } from "./elements/permission.js";
 import { renderThinking } from "./elements/thinking.js";
 import { renderSession } from "./elements/session.js";
@@ -22,11 +22,15 @@ import { renderTokenUsage } from "./elements/token-usage.js";
 import { renderEnterpriseCost } from "./elements/enterprise-cost.js";
 import { renderPromptTime } from "./elements/prompt-time.js";
 import { renderAutopilot } from "./elements/autopilot.js";
-import { renderCwd } from "./elements/cwd.js";
+import { renderCwd, renderStackedCwd } from "./elements/cwd.js";
 import { renderHostname } from "./elements/hostname.js";
-import { renderGitRepo, renderGitBranch, renderGitStatus } from "./elements/git.js";
+import { renderGitRepo, renderGitBranch, renderGitStatus, renderStackedBranch, getGitBranch, getWorktreeInfo, } from "./elements/git.js";
+import { renderHealthSigil } from "./elements/health-sigil.js";
+import { renderGithubUser } from "./elements/github-user.js";
+import { renderEffort } from "./elements/effort.js";
+import { renderActivity } from "./elements/activity.js";
 import { renderMultiRepo } from "./elements/multi-repo.js";
-import { renderModel } from "./elements/model.js";
+import { renderModel, renderStackedModel } from "./elements/model.js";
 import { renderApiKeySource } from "./elements/api-key-source.js";
 import { renderCallCounts } from "./elements/call-counts.js";
 import { renderContextLimitWarning, renderPayloadLimitWarning, } from "./elements/context-warning.js";
@@ -186,21 +190,58 @@ export function limitOutputLines(lines, maxLines) {
 export async function render(context, config) {
     const { elements: enabledElements } = config;
     const hudLabels = config.labels ?? DEFAULT_HUD_LABELS;
+    // safeMode: mirror index.ts's gate so custom glyphs (● ⑂ ⎇ ▸ ⚡ ◆ ⚙ …) get
+    // their ASCII fallbacks. The approved stacked design is glyph-based, so the
+    // ASCII fallback only fires on explicit safeMode:true OR Windows (which always
+    // degrades regardless of the configured safeMode). macOS/Linux with
+    // safeMode:false render the real glyphs. sanitizeOutput only handles control
+    // ANSI and block chars, so glyph-bearing elements must fall back themselves.
+    const safeMode = enabledElements.safeMode === true || process.platform === "win32";
+    // Dot-style vitals meter (stacked preset). Undefined meterStyle => bars.
+    const useDotMeters = enabledElements.meterStyle === "dots";
     // ── Render all elements into maps ──────────────────────────────────
     // Each element is rendered independently and stored by name.
     // The layout (or DEFAULT_ELEMENT_ORDER) determines final ordering.
     const rendered = new Map();
     const renderedDetail = new Map();
     // -- line1-group elements (default: git info line) --
+    if (enabledElements.healthSigil) {
+        const fiveHour = context.rateLimitsResult?.rateLimits?.fiveHourPercent ?? null;
+        const sigil = renderHealthSigil({
+            contextPercent: context.contextPercent,
+            fiveHourPercent: fiveHour,
+            agentsActive: context.activeAgents.some((a) => a.status === "running"),
+        }, safeMode);
+        rendered.set("healthSigil", sigil);
+    }
+    if (enabledElements.githubUser) {
+        const user = renderGithubUser(context.githubUser ?? null);
+        if (user)
+            rendered.set("githubUser", user);
+    }
     if (enabledElements.hostname) {
         const hostnameElement = renderHostname();
         if (hostnameElement)
             rendered.set("hostname", hostnameElement);
     }
     if (enabledElements.cwd) {
-        const cwdElement = renderCwd(context.cwd, enabledElements.cwdFormat || "relative", enabledElements.useHyperlinks ?? false);
-        if (cwdElement)
-            rendered.set("cwd", cwdElement);
+        if (enabledElements.cwdFormat === "last") {
+            const branch = getGitBranch(context.cwd);
+            const worktreeName = getWorktreeInfo(context.cwd).worktreeName;
+            const cwdElement = renderStackedCwd(context.cwd, branch, worktreeName, safeMode);
+            if (cwdElement)
+                rendered.set("cwd", cwdElement);
+        }
+        else {
+            const cwdElement = renderCwd(context.cwd, enabledElements.cwdFormat || "relative", enabledElements.useHyperlinks ?? false);
+            if (cwdElement)
+                rendered.set("cwd", cwdElement);
+        }
+    }
+    if (enabledElements.effort) {
+        const effortElement = renderEffort(context.reasoningEffort ?? null, safeMode, context.fastMode ?? false);
+        if (effortElement)
+            rendered.set("effort", effortElement);
     }
     // Multi-repo parent dir: replace the per-repo chips with a single
     // workspace summary. When cwd is itself a git repo, renderMultiRepo
@@ -218,7 +259,9 @@ export async function render(context, config) {
                 rendered.set("gitRepo", gitRepoElement);
         }
         if (enabledElements.gitBranch) {
-            const gitBranchElement = renderGitBranch(context.cwd);
+            const gitBranchElement = useDotMeters
+                ? renderStackedBranch(context.cwd, safeMode)
+                : renderGitBranch(context.cwd);
             if (gitBranchElement)
                 rendered.set("gitBranch", gitBranchElement);
         }
@@ -232,7 +275,11 @@ export async function render(context, config) {
         ? context.modelId ?? context.modelName
         : context.modelName;
     if (enabledElements.model && modelSource) {
-        const modelElement = renderModel(modelSource, enabledElements.modelFormat, hudLabels);
+        // The stacked preset shows a bare bold blue name (no `Model:` label),
+        // matching the prototype. Other presets keep the labelled cyan chip.
+        const modelElement = useDotMeters
+            ? renderStackedModel(modelSource, enabledElements.modelFormat)
+            : renderModel(modelSource, enabledElements.modelFormat, hudLabels);
         if (modelElement)
             rendered.set("model", modelElement);
     }
@@ -273,9 +320,11 @@ export async function render(context, config) {
     if (enabledElements.rateLimits && context.rateLimitsResult && !enterpriseCostReplacesRateLimits) {
         if (context.rateLimitsResult.rateLimits) {
             const stale = context.rateLimitsResult.stale;
-            const limits = enabledElements.useBars
-                ? renderRateLimitsWithBar(context.rateLimitsResult.rateLimits, undefined, stale)
-                : renderRateLimits(context.rateLimitsResult.rateLimits, stale);
+            const limits = useDotMeters
+                ? renderRateLimitsWithDots(context.rateLimitsResult.rateLimits, stale, safeMode)
+                : enabledElements.useBars
+                    ? renderRateLimitsWithBar(context.rateLimitsResult.rateLimits, undefined, stale)
+                    : renderRateLimits(context.rateLimitsResult.rateLimits, stale);
             if (limits)
                 rendered.set("rateLimits", limits);
         }
@@ -359,14 +408,18 @@ export async function render(context, config) {
             rendered.set("skills", skills);
     }
     if ((enabledElements.lastSkill ?? true) && !enabledElements.activeSkills) {
-        const lastSkillElement = renderLastSkill(context.lastSkill);
+        const lastSkillElement = useDotMeters
+            ? renderStackedLastSkill(context.lastSkill, safeMode)
+            : renderLastSkill(context.lastSkill);
         if (lastSkillElement)
             rendered.set("lastSkill", lastSkillElement);
     }
     if (enabledElements.contextBar) {
-        const ctx = enabledElements.useBars
-            ? renderContextWithBar(context.contextPercent, config.thresholds, 10, context.contextDisplayScope, hudLabels)
-            : renderContext(context.contextPercent, config.thresholds, context.contextDisplayScope, hudLabels);
+        const ctx = useDotMeters
+            ? renderContextWithDots(context.contextPercent, config.thresholds, context.contextDisplayScope, hudLabels, safeMode)
+            : enabledElements.useBars
+                ? renderContextWithBar(context.contextPercent, config.thresholds, 10, context.contextDisplayScope, hudLabels)
+                : renderContext(context.contextPercent, config.thresholds, context.contextDisplayScope, hudLabels);
         if (ctx)
             rendered.set("contextBar", ctx);
     }
@@ -395,7 +448,17 @@ export async function render(context, config) {
     }
     const showCounts = enabledElements.showCallCounts ?? true;
     if (showCounts) {
-        const counts = renderCallCounts(context.toolCallCount, context.agentCallCount, context.skillCallCount, enabledElements.callCountsFormat ?? 'auto', hudLabels);
+        // Item 2: when the HUD-level ASCII condition is active (safeMode), force the
+        // ASCII T:/A:/S: path — `auto` would otherwise still emit emoji on macOS/Linux.
+        const callCountsFormat = safeMode
+            ? 'ascii'
+            : enabledElements.callCountsFormat ?? 'auto';
+        // Item 1: the stacked/dot-meter preset shows a GEAR ⚙ for the tool count.
+        // Overrides apply only in the emoji path (getIcons drops them under ASCII),
+        // and are gated on !safeMode so ⚙ never leaks in ASCII mode (sanitizeOutput
+        // does not strip ⚙).
+        const iconOverrides = useDotMeters && !safeMode ? { tool: '⚙' } : undefined;
+        const counts = renderCallCounts(context.toolCallCount, context.agentCallCount, context.skillCallCount, callCountsFormat, hudLabels, iconOverrides);
         if (counts)
             rendered.set("callCounts", counts);
     }
@@ -426,6 +489,21 @@ export async function render(context, config) {
         const todos = renderTodosWithCurrent(context.todos);
         if (todos)
             renderedDetail.set("todos", [todos]);
+    }
+    // Stacked activity row: a single inline-joined detail line of workflow chips.
+    if (useDotMeters) {
+        const activity = renderActivity({
+            ralph: enabledElements.ralph ? context.ralph : null,
+            autopilot: enabledElements.autopilot ? context.autopilot : null,
+            prd: enabledElements.prdStory ? context.prd : null,
+            agents: enabledElements.agents ? context.activeAgents : [],
+            todos: enabledElements.todos ? context.todos : [],
+            backgroundTasks: enabledElements.backgroundTasks
+                ? context.backgroundTasks
+                : [],
+        }, safeMode);
+        if (activity)
+            renderedDetail.set("activity", [activity]);
     }
     // ── Assemble output using layout order ─────────────────────────────
     const safeArray = (v, fallback) => Array.isArray(v) ? v : fallback;
@@ -473,6 +551,48 @@ export async function render(context, config) {
         }
         return result;
     }
+    /** Collect inline elements as [name, value] pairs (dot-meter separator path). */
+    function collectInlinePairs(order) {
+        const result = [];
+        for (const name of order) {
+            const el = rendered.get(name);
+            if (el) {
+                result.push([name, el]);
+            }
+            else {
+                const lines = renderedDetail.get(name);
+                if (lines && lines.length > 0)
+                    result.push([name, lines.join(" ")]);
+            }
+        }
+        return result;
+    }
+    /**
+     * Join stacked-preset inline segments with a dim ` · ` separator. The
+     * health sigil hugs the next chip with a single space (● @user · …),
+     * matching the hud-live.mjs prototype, instead of a full separator.
+     */
+    function joinStackedLine(pairs) {
+        if (pairs.length === 0)
+            return "";
+        const sep = dim(" · ");
+        let out = "";
+        for (let i = 0; i < pairs.length; i += 1) {
+            const [name, value] = pairs[i];
+            if (i === 0) {
+                out = value;
+            }
+            else if (pairs[i - 1][0] === "healthSigil") {
+                // Sigil hugs the next chip with a single space (no separator).
+                out += ` ${value}`;
+            }
+            else {
+                out += `${sep}${value}`;
+            }
+        }
+        return out;
+    }
+    const useStackedSeparators = useDotMeters;
     const gitElements = collectInline(effectiveLayout.line1);
     const elements = collectInline(effectiveLayout.main);
     // Detail lines from the detail group layout order.
@@ -481,8 +601,20 @@ export async function render(context, config) {
     const detailLines = collectDetailLines(effectiveLayout.detail);
     // Compose output
     const outputLines = [];
-    const gitInfoLine = gitElements.length > 0 ? gitElements.join(dim(PLAIN_SEPARATOR)) : null;
-    const headerLine = elements.length > 0 ? elements.join(dim(PLAIN_SEPARATOR)) : null;
+    const gitInfoLine = useStackedSeparators
+        ? (gitElements.length > 0
+            ? joinStackedLine(collectInlinePairs(effectiveLayout.line1))
+            : null)
+        : gitElements.length > 0
+            ? gitElements.join(dim(PLAIN_SEPARATOR))
+            : null;
+    const headerLine = useStackedSeparators
+        ? (elements.length > 0
+            ? joinStackedLine(collectInlinePairs(effectiveLayout.main))
+            : null)
+        : elements.length > 0
+            ? elements.join(dim(PLAIN_SEPARATOR))
+            : null;
     const gitPosition = config.elements.gitInfoPosition ?? "above";
     if (gitPosition === "above") {
         if (gitInfoLine) {

@@ -6,7 +6,7 @@
 import { execFileSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';
 import { resolve, basename } from 'node:path';
-import { dim, cyan, green, red } from '../colors.js';
+import { dim, cyan, green, red, magenta } from '../colors.js';
 import { DEFAULT_HUD_LABELS } from '../types.js';
 const CACHE_TTL_MS = 30_000;
 const repoCache = new Map();
@@ -157,6 +157,49 @@ export function renderGitBranch(cwd) {
         return `${dim('branch:')}${cyan(branch)} ${dim('(wt:')}${cyan(wtInfo.worktreeName)}${dim(')')}`;
     }
     return `${dim('branch:')}${cyan(branch)}`;
+}
+/**
+ * Determine whether the working tree has uncommitted changes.
+ * Derived from the same porcelain status parse used elsewhere.
+ *
+ * @param cwd - Working directory
+ * @returns true when staged/modified/untracked changes exist, false when clean
+ */
+export function isGitDirty(cwd) {
+    const counts = getGitStatusCounts(cwd);
+    if (!counts)
+        return false;
+    return counts.staged > 0 || counts.modified > 0 || counts.untracked > 0;
+}
+/**
+ * Render the worktree-aware branch segment used by the `stacked` preset.
+ *
+ * - Glyph: `⑂ ` inside a linked worktree, `⎇ ` otherwise.
+ * - When the worktree name equals the branch, show just the branch (cyan).
+ *   Otherwise show `worktree/branch` (worktree magenta, slash dim, branch cyan).
+ * - Trailing dirty flag: `*` (yellow) when dirty, `✓` (dim) when clean.
+ *
+ * @param cwd - Working directory
+ * @param safeMode - When true, use ASCII fallbacks (worktree: 'wt ', normal: '', clean: no glyph)
+ * @returns Formatted branch segment or null when not in a git repo
+ */
+export function renderStackedBranch(cwd, safeMode = false) {
+    const branch = getGitBranch(cwd);
+    if (!branch)
+        return null;
+    const wtInfo = getWorktreeInfo(cwd);
+    const dirty = isGitDirty(cwd);
+    const flag = dirty ? '\x1b[33m*\x1b[0m' : dim('✓');
+    const cleanFlag = safeMode ? (dirty ? '*' : '') : flag;
+    if (wtInfo.isWorktree && wtInfo.worktreeName) {
+        const glyph = safeMode ? 'wt ' : '⑂ '; // ⑂
+        const label = wtInfo.worktreeName === branch
+            ? cyan(branch)
+            : `${magenta(wtInfo.worktreeName)}${dim('/')}${cyan(branch)}`;
+        return `${dim(glyph)}${label}${cleanFlag}`;
+    }
+    const glyph = safeMode ? '' : dim('⎇ '); // ⎇
+    return `${glyph}${cyan(branch)}${cleanFlag}`;
 }
 /**
  * Get git working tree status counts.

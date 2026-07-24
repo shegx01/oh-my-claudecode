@@ -4,7 +4,7 @@
  * Renders 5-hour and weekly rate limit usage display (built-in providers),
  * and custom rate limit buckets from the rateLimitsProvider command.
  */
-import { RESET } from '../colors.js';
+import { RESET, dim, dotMeter } from '../colors.js';
 const GREEN = '\x1b[32m';
 const YELLOW = '\x1b[33m';
 const RED = '\x1b[31m';
@@ -22,6 +22,18 @@ function getColor(percent) {
     else if (percent >= WARNING_THRESHOLD) {
         return YELLOW;
     }
+    return GREEN;
+}
+/**
+ * Used-% ramp for the dot meter renderer, matching the context meter and the
+ * `hud-live.mjs` prototype `used()`: >=85 red, >=70 yellow, else green.
+ * The bar renderer keeps the legacy 90 CRITICAL threshold via getColor().
+ */
+function getDotColor(percent) {
+    if (percent >= 85)
+        return RED;
+    if (percent >= WARNING_THRESHOLD)
+        return YELLOW;
     return GREEN;
 }
 /**
@@ -231,6 +243,37 @@ export function renderRateLimitsWithBar(limits, barWidth = 8, stale) {
             ? `${DIM}extra:${RESET}[${extraBar}]${extraColor}${extra}%${RESET}${staleMarker}${dollarPart}${DIM}(${resetPrefix}${extraReset})${RESET}`
             : `${DIM}extra:${RESET}[${extraBar}]${extraColor}${extra}%${RESET}${staleMarker}${dollarPart}`;
         parts.push(extraPart);
+    }
+    return parts.join(' ');
+}
+/**
+ * Render 5h and weekly rate limits as compact dot meters (used by the `stacked` preset).
+ *
+ * Format: 5h ●●○○○ 32%  wk ●○○○○ 12%   (label dim, dots + number in ramp color)
+ *
+ * Both buckets report % used, so a high value is bad and the ramp is
+ * >=85 red, >=70 yellow, else green. safeMode replaces dots with a `#`/`-` bar.
+ */
+export function renderRateLimitsWithDots(limits, stale, safeMode = false) {
+    if (!limits)
+        return null;
+    const cells = 5;
+    const meterFor = (pct, color) => {
+        if (safeMode) {
+            const filled = Math.max(0, Math.min(cells, Math.round((pct / 100) * cells)));
+            return `${color}${'#'.repeat(filled)}${DIM}${'-'.repeat(cells - filled)}${RESET}`;
+        }
+        return dotMeter(pct, cells, color);
+    };
+    const staleMarker = stale ? `${DIM}*${RESET}` : '';
+    const parts = [];
+    const fiveHour = Math.min(100, Math.max(0, Math.round(limits.fiveHourPercent)));
+    const fiveHourColor = getDotColor(fiveHour);
+    parts.push(`${dim('5h ')}${meterFor(fiveHour, fiveHourColor)} ${fiveHourColor}${fiveHour}%${RESET}${staleMarker}`);
+    if (limits.weeklyPercent != null) {
+        const weekly = Math.min(100, Math.max(0, Math.round(limits.weeklyPercent)));
+        const weeklyColor = getDotColor(weekly);
+        parts.push(`${dim('wk ')}${meterFor(weekly, weeklyColor)} ${weeklyColor}${weekly}%${RESET}${staleMarker}`);
     }
     return parts.join(' ');
 }

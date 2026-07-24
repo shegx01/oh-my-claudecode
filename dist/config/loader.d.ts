@@ -43,6 +43,7 @@ export declare function validateTeamConfig(config: PluginConfig): void;
 /** Validate the closed v1 workflow block without changing legacy config validation. */
 export declare function validateAutopilotWorkflows(config: unknown, source: string): void;
 export declare function validateAutopilotConfig(config: PluginConfig): void;
+export declare function validateBranchGuardConfig(config: PluginConfig): void;
 export declare function loadConfig(): PluginConfig;
 export declare function compactOmcStartupGuidance(content: string): string;
 /**

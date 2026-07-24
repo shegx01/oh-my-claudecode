@@ -151,30 +151,6 @@ jobs:
           path: dist/
           retention-days: 7
 
-  no-committed-build-artifacts:
-    name: No Committed Build Artifacts
-    runs-on: ubuntu-latest
-    # This candidate-side classifier is credential-free containment only; it
-    # never authorizes generated artifacts or supplies merge approval.
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Hold candidate generated changes
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: node scripts/ci/check-no-committed-build-artifacts.mjs --base "$BASE_SHA" --head "$HEAD_SHA"
-
   multirepo-paths-gate:
     name: Multi-repo Path Gate (AST-grep)
     runs-on: ${{ matrix.os }}

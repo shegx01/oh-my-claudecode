@@ -4,7 +4,7 @@
  * Renders context window usage display.
  */
 import { DEFAULT_HUD_LABELS } from '../types.js';
-import { RESET } from '../colors.js';
+import { RESET, dim, dotMeter } from '../colors.js';
 const GREEN = '\x1b[32m';
 const YELLOW = '\x1b[33m';
 const RED = '\x1b[31m';
@@ -112,5 +112,31 @@ export function renderContextWithBar(percent, thresholds, barWidth = 10, display
     const { color, suffix } = getContextDisplayStyle(safePercent, thresholds);
     const bar = `${color}${'█'.repeat(filled)}${DIM}${'░'.repeat(empty)}${RESET}`;
     return `${labels.context}:[${bar}]${color}${safePercent}%${suffix}${RESET}`;
+}
+/**
+ * Render context window with a dot meter (used by the `stacked` preset).
+ *
+ * Format: ctx ●●●○○ 67%          (label dim, dots + number in ramp color)
+ *         ctx ●●●●● 92% ⚠ /compact   (compact warning appended when >= critical)
+ *
+ * safeMode replaces the dot meter with a `#`/`-` bar and drops the ⚠ glyph.
+ */
+export function renderContextWithDots(percent, thresholds, displayScope, labels = DEFAULT_HUD_LABELS, safeMode = false) {
+    const safePercent = getStableContextDisplayPercent(percent, thresholds, displayScope);
+    const color = safePercent >= 85 ? RED : safePercent >= 70 ? YELLOW : GREEN;
+    const cells = 5;
+    let meter;
+    if (safeMode) {
+        const filled = Math.max(0, Math.min(cells, Math.round((safePercent / 100) * cells)));
+        meter = `${color}${'#'.repeat(filled)}${DIM}${'-'.repeat(cells - filled)}${RESET}`;
+    }
+    else {
+        meter = dotMeter(safePercent, cells, color);
+    }
+    let out = `${dim(`${labels.context} `)}${meter} ${color}${safePercent}%${RESET}`;
+    if (safePercent >= thresholds.contextCritical) {
+        out += safeMode ? `${RED} ! /compact${RESET}` : `${RED} ⚠ /compact${RESET}`;
+    }
+    return out;
 }
 //# sourceMappingURL=context.js.map

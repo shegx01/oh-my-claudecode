@@ -73,4 +73,21 @@ export function renderModel(modelId, format = 'versioned', labels = DEFAULT_HUD_
         return null;
     return cyan(`${labels.model}: ${name}`);
 }
+// ANSI codes for the stacked (bold, bare) model chip.
+const BOLD = '\x1b[1m';
+const BLUE = '\x1b[34m';
+const RESET = '\x1b[0m';
+/**
+ * Render the model chip for the `stacked` preset: a bare, bold, blue name
+ * (e.g. **Opus 4.8**) with no `Model:` label — matching the hud-live.mjs
+ * prototype `c.bold(c.blue(x.model))`. Bold is emitted inside the color span
+ * so it actually applies (a naive bold(cyan(...)) is a no-op because the inner
+ * RESET terminates the bold immediately).
+ */
+export function renderStackedModel(modelId, format = 'versioned') {
+    const name = formatModelName(modelId, format);
+    if (!name)
+        return null;
+    return `${BOLD}${BLUE}${name}${RESET}`;
+}
 //# sourceMappingURL=model.js.map
