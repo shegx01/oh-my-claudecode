@@ -12,7 +12,7 @@ Complete reference for oh-my-claudecode. For quick start, see the main [README.m
 - [Plugin directory flags](#plugin-directory-flags)
 - [CLI Commands: ask/team/session](#cli-commands-askteamsession)
 - [Legacy MCP Team Runtime Tools (Deprecated)](#legacy-mcp-team-runtime-tools-deprecated-opt-in-only)
-- [Agents (29 Total)](#agents-29-total)
+- [Agents (30 Total)](#agents-30-total)
 - [Goal Workflow UX: `/goal`, Ralph, Team, UltraQA, Ultragoal](#goal-workflow-ux-goal-ralph-team-ultraqa-ultragoal)
 - [Skills (38 Total)](#skills-38-total)
 - [Slash Commands](#slash-commands)
@@ -663,7 +663,7 @@ Bounded handoff policy:
 2. For larger payloads, pass a short summary plus the descriptor.
 3. Keep durable content in artifact paths such as `.omc/plans/`, `.omc/prompts/`, and related artifact stores rather than embedding full bodies into queue or status records.
 
-## Agents (29 Total)
+## Agents (30 Total)
 
 Always use `oh-my-claudecode:` prefix when calling via Task tool.
 
@@ -687,6 +687,7 @@ Always use `oh-my-claudecode:` prefix when calling via Task tool.
 | **Build**          | -                       | `debugger`            | -                   |
 | **TDD**            | -                       | `test-engineer`       | -                   |
 | **Code Review**    | -                       | -                     | `code-reviewer`     |
+| **Multi-Axis Review** | -                    | -                     | `multi-axis-reviewer` |
 | **Data Science**   | -                       | `scientist`           | `scientist-high`    |
 | **Git**            | -                       | `git-master`          | -                   |
 | **Simplification** | -                       | -                     | `code-simplifier`   |
@@ -721,6 +722,7 @@ Always use `oh-my-claudecode:` prefix when calling via Task tool.
 | Quick test suggestions         | `test-engineer` (model=haiku)                                          | haiku  |
 | Code review                    | `code-reviewer`                                                        | opus   |
 | Quick code check               | `code-reviewer` (model=haiku)                                          | haiku  |
+| Multi-axis review gate         | `multi-axis-reviewer`                                                  | opus   |
 | Data analysis/stats            | `scientist`                                                            | sonnet |
 | Quick data inspection          | `scientist` (model=haiku)                                              | haiku  |
 | Complex ML/hypothesis          | `scientist-high`                                                       | opus   |

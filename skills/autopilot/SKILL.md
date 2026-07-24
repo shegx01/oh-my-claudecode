@@ -104,8 +104,10 @@ V1 does not support `stageModels`, model routing, provider or role selection; in
    - Repeat up to 5 cycles
    - Stop early if the same error repeats 3 times (indicates a fundamental issue)
 
-5. **Phase 4 - Validation**: Single multi-axis-reviewer pass
-   - Multi-axis-reviewer: fans out one full critic pass per axis (correctness, logic, contracts, error handling, security, performance, simplicity, tests) and returns one consolidated verdict
+5. **Phase 4 - Validation**: Single multi-axis-reviewer pass (MANDATORY — never skipped)
+   - Multi-axis-reviewer fans out one full critic pass per axis and returns one consolidated verdict; the agent owns the axis definitions (single source of truth — do not re-enumerate them here)
+   - **Diff-size → axis-count signal (mirror ralph):** Pass the reviewer the diff-size signal. Default lean to 6 axes; escalate to the full 8-axis set when the change touches **>20 files OR is security-sensitive** (auth, crypto, payments, dependency bumps). Security-sensitive changes MUST use the full 8-axis set — axis 5 now carries the full security-reviewer checklist, restoring the guaranteed security depth that dropping the standalone `security-reviewer` pass removed.
+   - This review is MANDATORY. If the `multi-axis-reviewer` spawn fails, retry. If it truly cannot run, its own `<Fallback>` applies. NEVER treat a missing Phase-4 verdict as APPROVE and NEVER skip ahead to Phase 5 without a verdict.
    - On REQUEST-CHANGES: fix the surfaced findings and re-validate until the verdict is APPROVE
 
 6. **Phase 5 - Cleanup**: Delete all state files on successful completion
@@ -114,9 +116,9 @@ V1 does not support `stageModels`, model routing, provider or role selection; in
 </Steps>
 
 <Tool_Usage>
-- Use `Task(subagent_type="oh-my-claudecode:multi-axis-reviewer", ...)` for Phase 4 validation — one call runs the full multi-axis review (correctness, security, quality, tests) and returns a single verdict
-- Agents form their own analysis first, then spawn Claude Task agents for cross-validation
-- Never block on external tools; proceed with available agents if delegation fails
+- Use `Task(subagent_type="oh-my-claudecode:multi-axis-reviewer", ...)` for Phase 4 validation — one call runs the full multi-axis review and returns a single consolidated verdict
+- The `multi-axis-reviewer` internally fans out one critic pass per axis and consolidates them; you spawn it once and read its final verdict, you do not orchestrate the per-axis passes yourself
+- Phase 4 is mandatory: retry a failed reviewer spawn; if it truly cannot run, its `<Fallback>` applies. Never proceed to Phase 5 without a Phase-4 verdict
 </Tool_Usage>
 
 <Examples>

@@ -128,6 +128,7 @@ Build/Analysis Lane:
 Review Lane:
 - `/prompts:style-reviewer`: Formatting, naming, idioms, lint conventions
 - `/prompts:code-reviewer`: Comprehensive review — logic defects, maintainability, anti-patterns, style, performance
+- `/prompts:multi-axis-reviewer`: Independent multi-axis review gate — fans out one critic pass per axis (6-8), dedupes, single severity-ranked verdict
 - `/prompts:api-reviewer`: API contracts, versioning, backward compatibility
 - `/prompts:security-reviewer`: Vulnerabilities, trust boundaries, authn/authz
 - `/prompts:performance-reviewer`: Hotspots, complexity, memory/latency optimization

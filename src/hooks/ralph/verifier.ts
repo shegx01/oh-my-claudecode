@@ -49,7 +49,7 @@ export interface VerificationState {
 }
 
 const DEFAULT_MAX_VERIFICATION_ATTEMPTS = 3;
-const DEFAULT_RALPH_CRITIC_MODE: RalphCriticMode = 'architect';
+const DEFAULT_RALPH_CRITIC_MODE: RalphCriticMode = 'multi-axis-reviewer';
 
 function createVerificationRequestId(): string {
   return randomUUID();
@@ -65,6 +65,8 @@ function getCriticLabel(mode?: RalphCriticMode): string {
       return 'Critic';
     case 'codex':
       return 'Codex critic';
+    case 'multi-axis-reviewer':
+      return 'Multi-axis reviewer';
     default:
       return 'Architect';
   }
@@ -83,6 +85,12 @@ function getVerificationAgentStep(mode?: RalphCriticMode): string {
    ${formatOmcCliInvocation('ask codex --agent-prompt critic "<verification prompt covering the task, completion claim, and acceptance criteria>"')}
    \`\`\`
    Use the Codex output as the reviewer verdict before deciding pass/fix.`;
+    case 'multi-axis-reviewer':
+      return `1. **Spawn Multi-Axis Reviewer Agent** for verification:
+   \`\`\`
+   Task(subagent_type="oh-my-claudecode:multi-axis-reviewer", prompt="Review this completion claim across all axes. Diff/base to review: <git diff HEAD~1..HEAD or the relevant commit range>. Use the acceptance criteria as the correctness oracle. Return one consolidated severity-ranked verdict (APPROVE / REQUEST-CHANGES / INCONCLUSIVE).")
+   \`\`\`
+   Pass the diff/base and acceptance criteria as the correctness oracle; use the single consolidated verdict before deciding pass/fix.`;
     default:
       return `1. **Spawn Architect Agent** for verification:
    \`\`\`

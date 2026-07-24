@@ -25,7 +25,7 @@ The `swarm` compatibility alias was removed in #1131.
 - **N** - Number of teammate agents (1-20). Optional; defaults to auto-sizing based on task decomposition.
 - **agent-type** - OMC agent to spawn for the `team-exec` stage (e.g., executor, debugger, designer, codex, gemini, antigravity). Optional; defaults to stage-aware routing. Use `codex` to spawn Codex CLI workers, `gemini` for Gemini CLI workers (enterprise/API-key tier), or `antigravity` for Antigravity CLI (`agy`) workers (Google's successor to the Gemini CLI; requires respective CLIs installed). See Stage Agent Routing below.
 - **task** - High-level task to decompose and distribute among teammates
-- **ralph** - Optional modifier. When present, wraps the team pipeline in Ralph's persistence loop (retry on failure, architect verification before completion). See Team + Ralph Composition below.
+- **ralph** - Optional modifier. When present, wraps the team pipeline in Ralph's persistence loop (retry on failure, ralph's Step-7 reviewer verification — default `multi-axis-reviewer` — before completion). See Team + Ralph Composition below.
 
 ### Examples
 
@@ -135,6 +135,7 @@ Each pipeline stage uses **specialized agents** -- not just executors. The lead 
   - Entry: execution pass finishes.
   - Agents: `multi-axis-reviewer` (see routing table).
   - **Verify agent input (diff-scoped):** Pass the reviewer `git diff` (output of `git diff HEAD~1..HEAD` or the relevant commit range), the changed-file list, and the acceptance criteria. Do NOT pass full team state or the entire conversation history. `multi-axis-reviewer` uses only this scoped input to fan out its per-axis critic passes and render one consolidated verdict.
+  - **Diff-size → axis-count signal (mirror ralph):** Pass the reviewer the diff-size signal so it can right-size its axis set. Default lean to 6 axes; escalate to the full 8-axis set when the change touches **>20 files OR is security-sensitive** (auth, crypto, payments, dependency bumps). Security-sensitive changes MUST use the full 8-axis set — axis 5 now carries the full security-reviewer checklist, which restores the guaranteed security depth that dropping the standalone `security-reviewer` pass removed.
   - Exit (pass): verification gates pass with no required follow-up.
   - Exit (fail): fix tasks are generated and control moves to `team-fix`.
 - **team-fix**
@@ -622,7 +623,7 @@ Detailed CLI-worker / routing / gotchas reference: `skills/team/REFERENCE.md` (l
 When the user invokes `/team ralph`, says "team ralph", or combines both keywords, team mode wraps itself in Ralph's persistence loop. This provides:
 
 - **Team orchestration** -- multi-agent staged pipeline with specialized agents per stage
-- **Ralph persistence** -- retry on failure, architect verification before completion, iteration tracking
+- **Ralph persistence** -- retry on failure, ralph's Step-7 reviewer verification (default `multi-axis-reviewer`) before completion, iteration tracking
 
 ### Activation
 
@@ -655,9 +656,9 @@ state_write(mode="ralph", active=true, iteration=1, max_iterations=10, current_p
 
 1. Ralph outer loop starts (iteration 1)
 2. Team pipeline runs: `team-plan -> team-prd -> team-exec -> team-verify`
-3. If `team-verify` passes: Ralph runs architect verification (STANDARD tier minimum)
-4. If architect approves: both modes complete, run `/oh-my-claudecode:cancel`
-5. If `team-verify` fails OR architect rejects: team enters `team-fix`, then loops back to `team-exec -> team-verify`
+3. If `team-verify` passes: Ralph runs its Step-7 reviewer verification (default `multi-axis-reviewer`, opus)
+4. If the reviewer returns APPROVE: both modes complete, run `/oh-my-claudecode:cancel`
+5. If `team-verify` fails OR the reviewer returns REQUEST-CHANGES/INCONCLUSIVE: team enters `team-fix`, then loops back to `team-exec -> team-verify`
 6. If fix loop exceeds `max_fix_loops`: Ralph increments iteration and retries the full pipeline
 7. If Ralph exceeds `max_iterations`: terminal `failed` state
 
