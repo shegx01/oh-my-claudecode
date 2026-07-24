@@ -18,5 +18,9 @@ import type { CallCountsFormat, HudLabels } from '../types.js';
  * @param agentInvocations - Total Task/proxy_Task calls seen in transcript
  * @param skillUsages - Total Skill/proxy_Skill calls seen in transcript
  */
-export declare function renderCallCounts(toolCalls: number, agentInvocations: number, skillUsages: number, format?: CallCountsFormat, labels?: Pick<HudLabels, 'tool' | 'agent' | 'skill'>): string | null;
+export declare function renderCallCounts(toolCalls: number, agentInvocations: number, skillUsages: number, format?: CallCountsFormat, labels?: Pick<HudLabels, 'tool' | 'agent' | 'skill'>, iconOverrides?: Partial<{
+    tool: string;
+    agent: string;
+    skill: string;
+}>): string | null;
 //# sourceMappingURL=call-counts.d.ts.map

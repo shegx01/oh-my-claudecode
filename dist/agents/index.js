@@ -8,6 +8,7 @@
 export * from './types.js';
 // Utilities
 export { createAgentToolRestrictions, mergeAgentConfig, buildDelegationTable, buildUseAvoidSection, createEnvContext, getAvailableAgents, buildKeyTriggersSection, validateAgentConfig, deepMerge, loadAgentPrompt, formatOpenQuestions, OPEN_QUESTIONS_PATH } from './utils.js';
+export { buildRepoBrief, REPO_BRIEF_TOKEN_CAP } from './preamble.js';
 // Individual agent exports
 export { architectAgent, ARCHITECT_PROMPT_METADATA } from './architect.js';
 export { exploreAgent, EXPLORE_PROMPT_METADATA } from './explore.js';
@@ -26,7 +27,7 @@ export { debuggerAgent, verifierAgent } from './definitions.js';
 // Reformed agents (Domain Specialists)
 export { testEngineerAgent } from './definitions.js';
 // Specialized agents (Security, Code Review, Git, Code Simplifier)
-export { securityReviewerAgent, codeReviewerAgent, gitMasterAgent, codeSimplifierAgent } from './definitions.js';
+export { securityReviewerAgent, codeReviewerAgent, multiAxisReviewerAgent, gitMasterAgent, codeSimplifierAgent } from './definitions.js';
 // Core exports (getAgentDefinitions and omcSystemPrompt)
 export { getAgentDefinitions, omcSystemPrompt } from './definitions.js';
 //# sourceMappingURL=index.js.map

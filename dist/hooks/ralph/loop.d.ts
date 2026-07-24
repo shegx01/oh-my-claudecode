@@ -35,7 +35,7 @@ export interface RalphLoopState {
     /** Reviewer mode for Ralph completion verification */
     critic_mode?: RalphCriticMode;
 }
-export declare const RALPH_CRITIC_MODES: readonly ["architect", "critic", "codex"];
+export declare const RALPH_CRITIC_MODES: readonly ["architect", "critic", "codex", "multi-axis-reviewer"];
 export type RalphCriticMode = typeof RALPH_CRITIC_MODES[number];
 export interface RalphLoopOptions {
     /** Maximum iterations (default: 10) */

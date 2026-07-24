@@ -61,6 +61,22 @@ export interface StatuslineStdin {
             resets_at?: number | string;
         };
     };
+    /** Reasoning-effort selection from Claude Code statusline stdin */
+    effort?: {
+        level?: string;
+    };
+    /** Fast-mode flag from Claude Code statusline stdin (renders a `fast` token) */
+    fast_mode?: boolean;
+    /** Workspace metadata from Claude Code statusline stdin */
+    workspace?: {
+        current_dir?: string;
+        project_dir?: string;
+        repo?: {
+            host?: string;
+            owner?: string;
+            name?: string;
+        };
+    };
 }
 export interface TodoItem {
     content: string;
@@ -324,8 +340,20 @@ export interface HudRenderContext {
     lastToolName?: string | null;
     /** Best-effort local transcript-backed request payload pressure estimate. */
     payloadEstimate?: PayloadEstimate | null;
+    /** GitHub user/owner from statusline stdin workspace.repo.owner; null when unavailable */
+    githubUser?: string | null;
+    /** Reasoning-effort level from statusline stdin effort.level; null when unavailable */
+    reasoningEffort?: string | null;
+    /** Fast-mode flag from statusline stdin fast_mode; renders a `fast` token */
+    fastMode?: boolean;
 }
-export type HudPreset = 'minimal' | 'focused' | 'full' | 'opencode' | 'dense';
+export type HudPreset = 'minimal' | 'focused' | 'full' | 'opencode' | 'dense' | 'stacked';
+/**
+ * Meter rendering style for percentage vitals (context, rate limits):
+ * - bars: bracketed block bar (default when undefined)
+ * - dots: filled/empty dot meter (● ● ● ○ ○)
+ */
+export type MeterStyle = 'bars' | 'dots';
 /**
  * Agent display format options:
  * - count: agents:2
@@ -350,8 +378,9 @@ export type ThinkingFormat = 'bubble' | 'brain' | 'face' | 'text';
  * - relative: ~/workspace/dotfiles (home-relative)
  * - absolute: /Users/dat/workspace/dotfiles (full path)
  * - folder: dotfiles (folder name only)
+ * - last: …/dotfiles (last segment with a leading ▸ glyph; used by the stacked preset)
  */
-export type CwdFormat = 'relative' | 'absolute' | 'folder';
+export type CwdFormat = 'relative' | 'absolute' | 'folder' | 'last';
 /**
  * Model name format options:
  * - short: 'Opus', 'Sonnet', 'Haiku'
@@ -422,6 +451,10 @@ export interface HudElementConfig {
     enterpriseMode?: boolean;
     showEnterpriseCost?: boolean;
     useBars: boolean;
+    meterStyle?: MeterStyle;
+    healthSigil?: boolean;
+    githubUser?: boolean;
+    effort?: boolean;
     showCallCounts?: boolean;
     callCountsFormat?: CallCountsFormat;
     showLastTool?: boolean;
@@ -464,6 +497,19 @@ export interface LayoutConfig {
  * Used as fallback when no layout is configured.
  */
 export declare const DEFAULT_ELEMENT_ORDER: Required<LayoutConfig>;
+/**
+ * Layout for the `stacked` preset's 3-row design:
+ *   Row 1 (identity): health-sigil, @user, worktree/branch, dir, effort, last-skill
+ *   Row 2 (vitals):   model, ctx, 5h/wk limits, call counts
+ *   Row 3 (activity): ralph, autopilot, prd, agents, todos, background (inline-joined)
+ */
+export declare const STACKED_LAYOUT: Required<LayoutConfig>;
+/**
+ * Optional per-preset element ordering. Applied at config-merge time only
+ * when the user has not supplied their own `layout`. Presets not listed here
+ * fall back to DEFAULT_ELEMENT_ORDER.
+ */
+export declare const PRESET_LAYOUTS: Partial<Record<HudPreset, LayoutConfig>>;
 export interface HudConfig {
     preset: HudPreset;
     /** Optional HUD-label locale preset. Unsupported values are ignored. */

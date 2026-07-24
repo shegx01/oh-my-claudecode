@@ -18688,6 +18688,7 @@ var KNOWN_AGENT_NAMES = [
   "verifier",
   "securityReviewer",
   "codeReviewer",
+  "multiAxisReviewer",
   "testEngineer",
   "designer",
   "writer",

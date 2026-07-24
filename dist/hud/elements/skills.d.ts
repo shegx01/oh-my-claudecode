@@ -16,6 +16,15 @@ export declare function renderSkills(ultrawork: UltraworkStateForHud | null, ral
  */
 export declare function renderLastSkill(lastSkill: SkillInvocation | null): string | null;
 /**
+ * Render last skill for the `stacked` preset line1: `◆ <name>` (dim glyph,
+ * blue name), matching the hud-live.mjs prototype `c.dim("◆ ") + c.blue(...)`.
+ * The ASCII fallback (safeMode / Windows) is `skill:<name>`.
+ *
+ * @param lastSkill - Last skill invocation, or null
+ * @param safeMode - When true, use the ASCII `skill:<name>` form
+ */
+export declare function renderStackedLastSkill(lastSkill: SkillInvocation | null, safeMode?: boolean): string | null;
+/**
  * Render skill with reinforcement count (for debugging).
  *
  * Format: ultrawork(r3)

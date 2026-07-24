@@ -9,7 +9,7 @@ import { join } from "path";
 import { getClaudeConfigDir } from "../utils/config-dir.js";
 import { validateWorkingDirectory, getOmcRoot, ensureSessionStateDir, resolveSessionStatePath, } from "../lib/worktree-paths.js";
 import { atomicWriteFileSync, atomicWriteJsonSync, } from "../lib/atomic-write.js";
-import { DEFAULT_HUD_CONFIG, PRESET_CONFIGS, isHudLocale, resolveHudLabels, sanitizeHudLabels, } from "./types.js";
+import { DEFAULT_HUD_CONFIG, PRESET_CONFIGS, PRESET_LAYOUTS, isHudLocale, resolveHudLabels, sanitizeHudLabels, } from "./types.js";
 import { DEFAULT_MISSION_BOARD_CONFIG } from "./mission-board.js";
 import { cleanupStaleBackgroundTasks, markOrphanedTasksAsStale, } from "./background-cleanup.js";
 // ============================================================================
@@ -316,7 +316,12 @@ function mergeWithDefaults(config) {
             ? { rateLimitsProvider: config.rateLimitsProvider }
             : {}),
         ...(config.maxWidth != null ? { maxWidth: config.maxWidth } : {}),
-        ...(config.layout ? { layout: config.layout } : {}),
+        // User-supplied layout wins; otherwise apply the preset's layout when it defines one.
+        ...(config.layout
+            ? { layout: config.layout }
+            : PRESET_LAYOUTS[preset]
+                ? { layout: PRESET_LAYOUTS[preset] }
+                : {}),
     };
 }
 /**

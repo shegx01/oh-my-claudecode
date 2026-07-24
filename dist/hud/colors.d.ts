@@ -14,6 +14,7 @@ export declare function blue(text: string): string;
 export declare function dim(text: string): string;
 export declare function bold(text: string): string;
 export declare function white(text: string): string;
+export declare function grey(text: string): string;
 export declare function brightCyan(text: string): string;
 export declare function brightMagenta(text: string): string;
 export declare function brightBlue(text: string): string;
@@ -47,6 +48,16 @@ export declare function getDurationColor(durationMs: number): string;
  * Create a colored progress bar.
  */
 export declare function coloredBar(percent: number, width?: number): string;
+/**
+ * Create a dot-style meter: filled dots (ramp color) + empty dots (dim).
+ * Used by the `stacked` preset for compact vitals (● ● ● ○ ○).
+ *
+ * @param percent - 0-100 usage percentage (high = more filled)
+ * @param cells - Total number of dots (default 5)
+ * @param colorCode - ANSI color code for filled dots (default = context ramp)
+ * @returns Rendered dot meter with trailing RESET
+ */
+export declare function dotMeter(percent: number, cells?: number, colorCode?: string): string;
 /**
  * Create a simple numeric display with color.
  */

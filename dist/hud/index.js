@@ -5,7 +5,7 @@
  * Statusline command that visualizes oh-my-claudecode state.
  * Receives stdin JSON from Claude Code and outputs formatted statusline.
  */
-import { readStdin, writeStdinCache, readStdinCache, getContextPercent, getModelId, getModelName, getRateLimitsFromStdin, stabilizeContextPercent, } from "./stdin.js";
+import { readStdin, writeStdinCache, readStdinCache, getContextPercent, getModelId, getModelName, getGithubUser, getReasoningEffort, getFastMode, getRateLimitsFromStdin, stabilizeContextPercent, } from "./stdin.js";
 import { parseTranscript } from "./transcript.js";
 import { readHudState, readHudConfig, getRunningTasks, writeHudState, initializeHUDState, } from "./state.js";
 import { readRalphStateForHud, readUltraworkStateForHud, readPrdStateForHud, readAutopilotStateForHud, } from "./omc-state.js";
@@ -392,6 +392,9 @@ async function main(watchMode = false, skipInit = false) {
             sessionSummary,
             lastToolName: transcriptData.lastToolName,
             payloadEstimate,
+            githubUser: getGithubUser(stdin),
+            reasoningEffort: getReasoningEffort(stdin),
+            fastMode: getFastMode(stdin),
         };
         // Debug: log data if OMC_DEBUG is set
         if (process.env.OMC_DEBUG) {
@@ -427,13 +430,11 @@ async function main(watchMode = false, skipInit = false) {
         // Apply safe mode sanitization if enabled (Issue #346)
         // This strips ANSI codes and uses ASCII-only output to prevent
         // terminal rendering corruption during concurrent updates.
-        // On Windows, default to safe mode unless the user explicitly sets safeMode: false
-        // (e.g. Windows Terminal and modern terminals support ANSI natively).
-        // The win32 fallback is retained for configs that omit safeMode entirely
-        // (before default merge, e.g. minimal config files or future schema changes).
-        // explicit false overrides platform detection: process.platform === 'win32'
-        const useSafeMode = config.elements.safeMode !== false &&
-            (config.elements.safeMode || process.platform === "win32");
+        // ASCII fallback fires on explicit safeMode:true OR Windows (Windows always
+        // degrades regardless of the configured safeMode, since its terminals may
+        // not render multi-byte glyphs). macOS/Linux with safeMode:false render the
+        // real glyphs. This mirrors the render.ts per-element gate exactly.
+        const useSafeMode = config.elements.safeMode === true || process.platform === "win32";
         if (useSafeMode) {
             output = sanitizeOutput(output);
             // In safe mode, use regular spaces (don't convert to non-breaking)

@@ -6,7 +6,7 @@
  */
 import { homedir } from 'node:os';
 import { basename, dirname } from 'node:path';
-import { dim } from '../colors.js';
+import { dim, grey } from '../colors.js';
 /**
  * Wrap text in an OSC 8 terminal hyperlink.
  * Supported by: iTerm2, WezTerm, Kitty, Hyper, Windows Terminal, VTE-based terminals.
@@ -27,6 +27,13 @@ function pathToFileUrl(absPath) {
         return `file:///${normalized}`;
     }
     return `file://${normalized}`;
+}
+/**
+ * Extract the last path segment from an absolute path, tolerating trailing slashes.
+ */
+function lastSegment(cwd) {
+    const trimmed = cwd.replace(/[/\\]+$/, '');
+    return basename(trimmed) || trimmed;
 }
 /**
  * Render current working directory based on format.
@@ -74,6 +81,10 @@ export function renderCwd(cwd, format = 'relative', useHyperlinks = false) {
             displayPath = parent ? `${parent}/${folder}` : folder;
             break;
         }
+        case 'last':
+            // Last path segment only, prefixed with an ellipsis (…/<leaf>).
+            displayPath = `…/${lastSegment(cwd)}`;
+            break;
         default:
             displayPath = cwd;
     }
@@ -83,5 +94,30 @@ export function renderCwd(cwd, format = 'relative', useHyperlinks = false) {
         return osc8Link(url, rendered);
     }
     return rendered;
+}
+/**
+ * Render the last-segment directory for the `stacked` preset.
+ *
+ * Format: ▸ …/<leaf>  (dim glyph, grey path)   safeMode: …/<leaf>
+ *
+ * Suppressed entirely (returns null) when the last segment echoes the branch
+ * or worktree name, since that information is already shown by the branch
+ * segment on the same row.
+ *
+ * @param cwd - Absolute working directory
+ * @param branch - Current branch name (for echo suppression), if known
+ * @param worktreeName - Current worktree name (for echo suppression), if known
+ * @param safeMode - When true, drop the ▸ glyph
+ */
+export function renderStackedCwd(cwd, branch, worktreeName, safeMode = false) {
+    if (!cwd)
+        return null;
+    const leaf = lastSegment(cwd);
+    if (!leaf)
+        return null;
+    if (leaf === branch || leaf === worktreeName)
+        return null;
+    const glyph = safeMode ? '' : `${dim('▸ ')}`; // ▸
+    return `${glyph}${grey(`…/${leaf}`)}`;
 }
 //# sourceMappingURL=cwd.js.map

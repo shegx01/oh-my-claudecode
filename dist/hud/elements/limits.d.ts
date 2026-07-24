@@ -24,6 +24,15 @@ export declare function renderRateLimitsCompact(limits: RateLimits | null, stale
  */
 export declare function renderRateLimitsWithBar(limits: RateLimits | null, barWidth?: number, stale?: boolean): string | null;
 /**
+ * Render 5h and weekly rate limits as compact dot meters (used by the `stacked` preset).
+ *
+ * Format: 5h ●●○○○ 32%  wk ●○○○○ 12%   (label dim, dots + number in ramp color)
+ *
+ * Both buckets report % used, so a high value is bad and the ramp is
+ * >=85 red, >=70 yellow, else green. safeMode replaces dots with a `#`/`-` bar.
+ */
+export declare function renderRateLimitsWithDots(limits: RateLimits | null, stale?: boolean, safeMode?: boolean): string | null;
+/**
  * Render an error indicator when the built-in rate limit API call fails.
  *
  * - 'network': API timeout, HTTP error, or parse failure → [API err]

@@ -89,6 +89,9 @@ export interface PluginConfig {
         codeReviewer?: {
             model?: string;
         };
+        multiAxisReviewer?: {
+            model?: string;
+        };
         testEngineer?: {
             model?: string;
         };
@@ -256,6 +259,18 @@ export interface PluginConfig {
         largeWordLimit?: number;
         /** Suppress heavy orchestration modes (ralph/autopilot/team/ultrawork) for small tasks. Default: true */
         suppressHeavyModesForSmallTasks?: boolean;
+    };
+    branchGuard?: {
+        /** Enable protected-branch write blocking. Default: false */
+        enabled?: boolean;
+        /** Branches on which write-capable tools are blocked. Default: main, master, develop */
+        protectedBranches?: string[];
+        /** Branch-naming convention injected into the prompt (e.g. "<TICKET>-<kebab-summary>, e.g. CP-01-remove-invalid-test-cases"). The assistant resolves the concrete name, asking for the ticket key. Omit for a generic kebab-case suggestion. */
+        branchNameHint?: string;
+        /** Parent directory for the suggested worktree. Default: the repo's parent dir. */
+        worktreeParent?: string;
+        /** Subagent types that are write-incapable and exempt from the guard. */
+        readOnlyAgents?: string[];
     };
     promptPrerequisites?: {
         /** Enable parsing + blocking gate injection for prerequisite sections. Default: true */
@@ -428,7 +443,7 @@ export type TeamRoleProvider = 'claude' | 'codex' | 'gemini' | 'grok' | 'cursor'
 /** Tier name accepted in role-assignment `model` field. */
 export type TeamRoleTier = 'HIGH' | 'MEDIUM' | 'LOW';
 /** Known agent names derived from `buildDefaultConfig().agents` keys in src/config/loader.ts. */
-export declare const KNOWN_AGENT_NAMES: readonly ["omc", "explore", "analyst", "planner", "architect", "debugger", "executor", "verifier", "securityReviewer", "codeReviewer", "testEngineer", "designer", "writer", "qaTester", "scientist", "tracer", "gitMaster", "codeSimplifier", "critic", "documentSpecialist"];
+export declare const KNOWN_AGENT_NAMES: readonly ["omc", "explore", "analyst", "planner", "architect", "debugger", "executor", "verifier", "securityReviewer", "codeReviewer", "multiAxisReviewer", "testEngineer", "designer", "writer", "qaTester", "scientist", "tracer", "gitMaster", "codeSimplifier", "critic", "documentSpecialist"];
 export type KnownAgentName = typeof KNOWN_AGENT_NAMES[number];
 /** User-facing per-role spec in `team.roleRouting`. */
 export interface TeamRoleAssignmentSpec {

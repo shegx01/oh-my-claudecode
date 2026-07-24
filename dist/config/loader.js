@@ -39,6 +39,7 @@ export function buildDefaultConfig() {
             verifier: { model: defaultTierModels.MEDIUM },
             securityReviewer: { model: defaultTierModels.MEDIUM },
             codeReviewer: { model: defaultTierModels.HIGH },
+            multiAxisReviewer: { model: defaultTierModels.HIGH },
             testEngineer: { model: defaultTierModels.MEDIUM },
             designer: { model: defaultTierModels.MEDIUM },
             writer: { model: defaultTierModels.LOW },
@@ -153,6 +154,10 @@ export function buildDefaultConfig() {
         },
         autopilot: {
             execution: "solo",
+        },
+        branchGuard: {
+            enabled: false,
+            protectedBranches: ["main", "master", "develop"],
         },
         planOutput: {
             directory: ".omc/plans",
@@ -391,6 +396,13 @@ export function loadEnvConfig() {
                 defaultProvider: provider,
             };
         }
+    }
+    // Branch guard enable override from environment
+    if (process.env.OMC_BRANCH_GUARD_ENABLED !== undefined) {
+        config.branchGuard = {
+            ...config.branchGuard,
+            enabled: process.env.OMC_BRANCH_GUARD_ENABLED === "true",
+        };
     }
     // /team role routing env override (OMC_TEAM_ROLE_OVERRIDES — single JSON var).
     // Best-effort: invalid JSON logs and is ignored (no throw on env path).
@@ -641,6 +653,55 @@ export function validateAutopilotConfig(config) {
         }
     }
 }
+// branchNameHint / worktreeParent flow into the git command shown to the
+// assistant, so reject shell/flag-injection metacharacters. Mirrors the
+// merge-coordinator branch-name guard: a leading "-" (flag injection) plus
+// `;`, `|`, `&`, `$`, backtick, quotes, and newlines are all disallowed.
+const BRANCH_GUARD_UNSAFE_RE = /[;|&$`'"\n\r]/;
+function assertBranchGuardSafeString(value, path) {
+    if (value.startsWith("-")) {
+        throw new Error(`[OMC] ${path}: must not begin with "-" (flag-injection risk)`);
+    }
+    if (BRANCH_GUARD_UNSAFE_RE.test(value)) {
+        throw new Error(`[OMC] ${path}: contains shell metacharacters (; | & $ \` ' " or newline) which are not allowed`);
+    }
+}
+function assertStringArray(value, path) {
+    if (!Array.isArray(value)) {
+        throw new Error(`[OMC] ${path}: must be an array of strings`);
+    }
+    for (const entry of value) {
+        if (typeof entry !== "string") {
+            throw new Error(`[OMC] ${path}: must be an array of strings, got ${typeof entry} entry`);
+        }
+    }
+}
+export function validateBranchGuardConfig(config) {
+    const branchGuard = config.branchGuard;
+    if (!branchGuard || typeof branchGuard !== "object")
+        return;
+    if (branchGuard.enabled !== undefined && typeof branchGuard.enabled !== "boolean") {
+        throw new Error(`[OMC] branchGuard.enabled: must be a boolean, got ${typeof branchGuard.enabled}`);
+    }
+    if (branchGuard.protectedBranches !== undefined) {
+        assertStringArray(branchGuard.protectedBranches, "branchGuard.protectedBranches");
+    }
+    if (branchGuard.readOnlyAgents !== undefined) {
+        assertStringArray(branchGuard.readOnlyAgents, "branchGuard.readOnlyAgents");
+    }
+    if (branchGuard.branchNameHint !== undefined) {
+        if (typeof branchGuard.branchNameHint !== "string") {
+            throw new Error(`[OMC] branchGuard.branchNameHint: must be a string, got ${typeof branchGuard.branchNameHint}`);
+        }
+        assertBranchGuardSafeString(branchGuard.branchNameHint, "branchGuard.branchNameHint");
+    }
+    if (branchGuard.worktreeParent !== undefined) {
+        if (typeof branchGuard.worktreeParent !== "string") {
+            throw new Error(`[OMC] branchGuard.worktreeParent: must be a string, got ${typeof branchGuard.worktreeParent}`);
+        }
+        assertBranchGuardSafeString(branchGuard.worktreeParent, "branchGuard.worktreeParent");
+    }
+}
 function isValidModelValue(value) {
     if (typeof value !== "string")
         return false;
@@ -709,6 +770,7 @@ export function loadConfig() {
     // walking the parsed object so deepMerge bypasses surface here.
     validateTeamConfig(config);
     validateAutopilotConfig(config);
+    validateBranchGuardConfig(config);
     return config;
 }
 const OMC_STARTUP_COMPACTABLE_SECTIONS = [
@@ -1208,6 +1270,36 @@ export function generateConfigSchema() {
                                 description: "Preferred CLI worker types for executor-style autopilot team execution tasks",
                             },
                         },
+                    },
+                },
+            },
+            branchGuard: {
+                type: "object",
+                description: "Block write-capable tool calls on protected git branches and prompt for a new branch + worktree",
+                properties: {
+                    enabled: {
+                        type: "boolean",
+                        default: false,
+                        description: "Enable protected-branch write blocking",
+                    },
+                    protectedBranches: {
+                        type: "array",
+                        items: { type: "string" },
+                        default: ["main", "master", "develop"],
+                        description: "Branches on which write-capable tools are blocked (replaces the default [main, master, develop] rather than extending it)",
+                    },
+                    branchNameHint: {
+                        type: "string",
+                        description: "Branch-naming convention injected into the guard prompt (e.g. '<TICKET>-<kebab-summary>, e.g. CP-01-remove-invalid-test-cases'). The assistant resolves the concrete name and asks for the ticket key; omit for a generic kebab-case suggestion",
+                    },
+                    worktreeParent: {
+                        type: "string",
+                        description: "Parent directory for the suggested worktree. Defaults to the repo's parent directory",
+                    },
+                    readOnlyAgents: {
+                        type: "array",
+                        items: { type: "string" },
+                        description: "Subagent types that are write-incapable and exempt from the guard (replaces the default exempt set)",
                     },
                 },
             },

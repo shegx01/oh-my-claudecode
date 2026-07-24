@@ -520,6 +520,7 @@ var init_types = __esm({
       "verifier",
       "securityReviewer",
       "codeReviewer",
+      "multiAxisReviewer",
       "testEngineer",
       "designer",
       "writer",
@@ -5965,6 +5966,7 @@ function buildDefaultConfig() {
       verifier: { model: defaultTierModels.MEDIUM },
       securityReviewer: { model: defaultTierModels.MEDIUM },
       codeReviewer: { model: defaultTierModels.HIGH },
+      multiAxisReviewer: { model: defaultTierModels.HIGH },
       testEngineer: { model: defaultTierModels.MEDIUM },
       designer: { model: defaultTierModels.MEDIUM },
       writer: { model: defaultTierModels.LOW },
@@ -6081,6 +6083,10 @@ function buildDefaultConfig() {
     },
     autopilot: {
       execution: "solo"
+    },
+    branchGuard: {
+      enabled: false,
+      protectedBranches: ["main", "master", "develop"]
     },
     planOutput: {
       directory: ".omc/plans",
@@ -6279,6 +6285,12 @@ function loadEnvConfig() {
         defaultProvider: provider
       };
     }
+  }
+  if (process.env.OMC_BRANCH_GUARD_ENABLED !== void 0) {
+    config.branchGuard = {
+      ...config.branchGuard,
+      enabled: process.env.OMC_BRANCH_GUARD_ENABLED === "true"
+    };
   }
   const teamRoleOverrides = parseTeamRoleOverridesFromEnv();
   if (teamRoleOverrides) {
@@ -6483,6 +6495,57 @@ function validateAutopilotConfig(config) {
     }
   }
 }
+function assertBranchGuardSafeString(value, path4) {
+  if (value.startsWith("-")) {
+    throw new Error(`[OMC] ${path4}: must not begin with "-" (flag-injection risk)`);
+  }
+  if (BRANCH_GUARD_UNSAFE_RE.test(value)) {
+    throw new Error(
+      `[OMC] ${path4}: contains shell metacharacters (; | & $ \` ' " or newline) which are not allowed`
+    );
+  }
+}
+function assertStringArray(value, path4) {
+  if (!Array.isArray(value)) {
+    throw new Error(`[OMC] ${path4}: must be an array of strings`);
+  }
+  for (const entry of value) {
+    if (typeof entry !== "string") {
+      throw new Error(`[OMC] ${path4}: must be an array of strings, got ${typeof entry} entry`);
+    }
+  }
+}
+function validateBranchGuardConfig(config) {
+  const branchGuard = config.branchGuard;
+  if (!branchGuard || typeof branchGuard !== "object") return;
+  if (branchGuard.enabled !== void 0 && typeof branchGuard.enabled !== "boolean") {
+    throw new Error(
+      `[OMC] branchGuard.enabled: must be a boolean, got ${typeof branchGuard.enabled}`
+    );
+  }
+  if (branchGuard.protectedBranches !== void 0) {
+    assertStringArray(branchGuard.protectedBranches, "branchGuard.protectedBranches");
+  }
+  if (branchGuard.readOnlyAgents !== void 0) {
+    assertStringArray(branchGuard.readOnlyAgents, "branchGuard.readOnlyAgents");
+  }
+  if (branchGuard.branchNameHint !== void 0) {
+    if (typeof branchGuard.branchNameHint !== "string") {
+      throw new Error(
+        `[OMC] branchGuard.branchNameHint: must be a string, got ${typeof branchGuard.branchNameHint}`
+      );
+    }
+    assertBranchGuardSafeString(branchGuard.branchNameHint, "branchGuard.branchNameHint");
+  }
+  if (branchGuard.worktreeParent !== void 0) {
+    if (typeof branchGuard.worktreeParent !== "string") {
+      throw new Error(
+        `[OMC] branchGuard.worktreeParent: must be a string, got ${typeof branchGuard.worktreeParent}`
+      );
+    }
+    assertBranchGuardSafeString(branchGuard.worktreeParent, "branchGuard.worktreeParent");
+  }
+}
 function isValidModelValue(value) {
   if (typeof value !== "string") return false;
   if (value.length === 0) return false;
@@ -6532,9 +6595,10 @@ function loadConfig() {
   warnOnDeprecatedDelegationRouting(config);
   validateTeamConfig(config);
   validateAutopilotConfig(config);
+  validateBranchGuardConfig(config);
   return config;
 }
-var DEFAULT_CONFIG, CANONICAL_TEAM_ROLE_SET, CURSOR_EXECUTOR_TEAM_ROLE_SET, KNOWN_AGENT_NAME_SET, TEAM_ROLE_PROVIDERS, TEAM_ROLE_TIERS, AUTOPILOT_EXECUTION_BACKENDS, AUTOPILOT_PLANNING_MODES, AUTOPILOT_TEAM_AGENT_TYPES, AUTOPILOT_WORKFLOW_NAME, AUTOPILOT_WORKFLOW_RESERVED_NAMES, AUTOPILOT_WORKFLOW_SEQUENCES;
+var DEFAULT_CONFIG, CANONICAL_TEAM_ROLE_SET, CURSOR_EXECUTOR_TEAM_ROLE_SET, KNOWN_AGENT_NAME_SET, TEAM_ROLE_PROVIDERS, TEAM_ROLE_TIERS, AUTOPILOT_EXECUTION_BACKENDS, AUTOPILOT_PLANNING_MODES, AUTOPILOT_TEAM_AGENT_TYPES, AUTOPILOT_WORKFLOW_NAME, AUTOPILOT_WORKFLOW_RESERVED_NAMES, AUTOPILOT_WORKFLOW_SEQUENCES, BRANCH_GUARD_UNSAFE_RE;
 var init_loader = __esm({
   "src/config/loader.ts"() {
     "use strict";
@@ -6595,6 +6659,7 @@ var init_loader = __esm({
       ["ralplan", "execution", "qa"],
       ["ralplan", "execution", "ralph", "qa"]
     ];
+    BRANCH_GUARD_UNSAFE_RE = /[;|&$`'"\n\r]/;
   }
 });
 
@@ -7114,7 +7179,7 @@ var init_document_specialist = __esm({
 });
 
 // src/agents/definitions.ts
-var debuggerAgent, verifierAgent, testEngineerAgent, securityReviewerAgent, codeReviewerAgent, gitMasterAgent, codeSimplifierAgent;
+var debuggerAgent, verifierAgent, testEngineerAgent, securityReviewerAgent, codeReviewerAgent, multiAxisReviewerAgent, gitMasterAgent, codeSimplifierAgent;
 var init_definitions = __esm({
   "src/agents/definitions.ts"() {
     "use strict";
@@ -7178,6 +7243,13 @@ var init_definitions = __esm({
       name: "code-reviewer",
       description: "Expert code review specialist (Opus). Use for comprehensive code quality review.",
       prompt: loadAgentPrompt("code-reviewer"),
+      model: "opus",
+      defaultModel: "opus"
+    };
+    multiAxisReviewerAgent = {
+      name: "multi-axis-reviewer",
+      description: "Multi-axis independent review orchestrator \u2014 fans out full critic passes per axis, dedupes, single verdict (Opus).",
+      prompt: loadAgentPrompt("multi-axis-reviewer"),
       model: "opus",
       defaultModel: "opus"
     };

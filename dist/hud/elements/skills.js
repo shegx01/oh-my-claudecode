@@ -3,7 +3,7 @@
  *
  * Renders active skills badge (ultrawork, ralph mode indicators).
  */
-import { RESET, cyan } from '../colors.js';
+import { RESET, cyan, dim, blue } from '../colors.js';
 import { truncateToWidth } from '../../utils/string-width.js';
 const MAGENTA = '\x1b[35m';
 const BRIGHT_MAGENTA = '\x1b[95m';
@@ -70,6 +70,22 @@ export function renderLastSkill(lastSkill) {
     const argsDisplay = lastSkill.args ? `(${truncate(lastSkill.args, 15)})` : '';
     const displayName = getSkillDisplayName(lastSkill.name);
     return cyan(`skill:${displayName}${argsDisplay}`);
+}
+/**
+ * Render last skill for the `stacked` preset line1: `◆ <name>` (dim glyph,
+ * blue name), matching the hud-live.mjs prototype `c.dim("◆ ") + c.blue(...)`.
+ * The ASCII fallback (safeMode / Windows) is `skill:<name>`.
+ *
+ * @param lastSkill - Last skill invocation, or null
+ * @param safeMode - When true, use the ASCII `skill:<name>` form
+ */
+export function renderStackedLastSkill(lastSkill, safeMode = false) {
+    if (!lastSkill)
+        return null;
+    const displayName = getSkillDisplayName(lastSkill.name);
+    if (safeMode)
+        return cyan(`skill:${displayName}`);
+    return `${dim('◆ ')}${blue(displayName)}`;
 }
 /**
  * Render skill with reinforcement count (for debugging).

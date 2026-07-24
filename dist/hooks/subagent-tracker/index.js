@@ -18,6 +18,7 @@ import { resolveSessionId } from '../../lib/session-id.js';
 import { withFileLockSync, lockPathFor } from '../../lib/file-lock.js';
 import { recordAgentStart, recordAgentStop } from './session-replay.js';
 import { recordMissionAgentStart, recordMissionAgentStop } from '../../hud/mission-board.js';
+import { buildRepoBriefForSubagent } from '../repo-brief-hook.js';
 export const COST_LIMIT_USD = 1.0;
 export const DEADLOCK_CHECK_THRESHOLD = 3;
 // ============================================================================
@@ -500,11 +501,20 @@ export function processSubagentStart(input) {
             }
             // Check for stale agents
             const staleAgents = getStaleAgents(state);
+            const baseContext = `Agent ${input.agent_type} started (${input.agent_id})`;
+            let additionalContext = baseContext;
+            try {
+                const repoBrief = buildRepoBriefForSubagent(input.agent_type, input.cwd, input.session_id);
+                if (repoBrief) {
+                    additionalContext = `${repoBrief}\n\n${baseContext}`;
+                }
+            }
+            catch { /* best-effort: never break the spawn path */ }
             return {
                 continue: true,
                 hookSpecificOutput: {
                     hookEventName: "SubagentStart",
-                    additionalContext: `Agent ${input.agent_type} started (${input.agent_id})`,
+                    additionalContext,
                     agent_count: state.agents.filter((a) => a.status === "running").length,
                     stale_agents: staleAgents.map((a) => a.agent_id),
                 },
