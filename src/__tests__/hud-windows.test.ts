@@ -131,25 +131,25 @@ describe('HUD Windows Compatibility', () => {
   });
 
   describe('safeMode override (#346)', () => {
-    it('safeMode logic: explicit false overrides platform detection', () => {
-      // Simulate the logic from src/hud/index.ts
+    it('safeMode logic: Windows always ASCII, safeMode:true always ASCII', () => {
+      // Simulate the logic from src/hud/index.ts. The glyph-based design ships
+      // real glyphs only on macOS/Linux with safeMode:false; the ASCII fallback
+      // fires on explicit safeMode:true OR Windows (which always degrades).
       const resolveSafeMode = (safeMode: boolean, isWin32: boolean) =>
-        safeMode !== false && (safeMode || isWin32);
+        safeMode === true || isWin32;
 
-      // explicit false: disabled even on Windows
-      expect(resolveSafeMode(false, true)).toBe(false);
+      // explicit false: glyphs on Unix, but Windows still degrades to ASCII
+      expect(resolveSafeMode(false, true)).toBe(true);
       expect(resolveSafeMode(false, false)).toBe(false);
-      // explicit true: always enabled
+      // explicit true: always ASCII
       expect(resolveSafeMode(true, false)).toBe(true);
-      expect(resolveSafeMode(true, true)).toBe(true);
-      // default true on Windows: enabled
       expect(resolveSafeMode(true, true)).toBe(true);
     });
 
-    it('hud index.ts should use explicit-false override for safeMode', () => {
+    it('hud index.ts should degrade to ASCII on safeMode:true or Windows', () => {
       const indexPath = join(packageRoot, 'src', 'hud', 'index.ts');
       const content = readFileSync(indexPath, 'utf-8');
-      expect(content).toContain('config.elements.safeMode !== false');
+      expect(content).toContain('config.elements.safeMode === true');
     });
   });
 

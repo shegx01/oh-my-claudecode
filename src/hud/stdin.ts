@@ -398,3 +398,27 @@ export function getModelName(stdin: StatuslineStdin): string | null {
   const displayName = stdin.model?.display_name?.trim();
   return displayName || getModelId(stdin);
 }
+
+/**
+ * Get the GitHub user/owner from statusline stdin workspace metadata.
+ * Returns null when Claude Code does not provide a repo owner.
+ */
+export function getGithubUser(stdin: StatuslineStdin): string | null {
+  return stdin.workspace?.repo?.owner ?? null;
+}
+
+/**
+ * Get the reasoning-effort level from statusline stdin.
+ * Returns null when Claude Code does not provide an effort selection.
+ */
+export function getReasoningEffort(stdin: StatuslineStdin): string | null {
+  return stdin.effort?.level ?? null;
+}
+
+/**
+ * Get the fast-mode flag from statusline stdin.
+ * Returns false when Claude Code does not provide fast_mode.
+ */
+export function getFastMode(stdin: StatuslineStdin): boolean {
+  return stdin.fast_mode === true;
+}

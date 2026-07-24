@@ -31,6 +31,7 @@ import type {
 import {
   DEFAULT_HUD_CONFIG,
   PRESET_CONFIGS,
+  PRESET_LAYOUTS,
   isHudLocale,
   resolveHudLabels,
   sanitizeHudLabels,
@@ -448,7 +449,12 @@ function mergeWithDefaults(config: HudConfigInput): HudConfig {
       ? { rateLimitsProvider: config.rateLimitsProvider }
       : {}),
     ...(config.maxWidth != null ? { maxWidth: config.maxWidth } : {}),
-    ...(config.layout ? { layout: config.layout } : {}),
+    // User-supplied layout wins; otherwise apply the preset's layout when it defines one.
+    ...(config.layout
+      ? { layout: config.layout }
+      : PRESET_LAYOUTS[preset]
+        ? { layout: PRESET_LAYOUTS[preset] }
+        : {}),
   };
 }
 

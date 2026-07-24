@@ -24,13 +24,22 @@ function shouldUseAscii(format: CallCountsFormat = 'auto'): boolean {
 function getIcons(
   format: CallCountsFormat = 'auto',
   labels: Pick<HudLabels, 'tool' | 'agent' | 'skill'> = DEFAULT_HUD_LABELS,
+  iconOverrides?: Partial<{ tool: string; agent: string; skill: string }>,
 ) {
   const useAscii = shouldUseAscii(format);
-  return {
+  const icons = {
     tool: useAscii ? `${labels.tool}:` : '\u{1F527}',
     agent: useAscii ? `${labels.agent}:` : '\u{1F916}',
     skill: useAscii ? `${labels.skill}:` : '\u26A1',
   };
+  // Emoji-path icon overrides (e.g. gear \u2699 for the stacked preset). Never
+  // applied in ASCII mode so custom glyphs cannot leak past the ASCII gate.
+  if (!useAscii && iconOverrides) {
+    if (iconOverrides.tool) icons.tool = iconOverrides.tool;
+    if (iconOverrides.agent) icons.agent = iconOverrides.agent;
+    if (iconOverrides.skill) icons.skill = iconOverrides.skill;
+  }
+  return icons;
 }
 
 /**
@@ -49,9 +58,10 @@ export function renderCallCounts(
   skillUsages: number,
   format: CallCountsFormat = 'auto',
   labels: Pick<HudLabels, 'tool' | 'agent' | 'skill'> = DEFAULT_HUD_LABELS,
+  iconOverrides?: Partial<{ tool: string; agent: string; skill: string }>,
 ): string | null {
   const parts: string[] = [];
-  const icons = getIcons(format, labels);
+  const icons = getIcons(format, labels, iconOverrides);
 
   if (toolCalls > 0) {
     parts.push(`${icons.tool}${toolCalls}`);

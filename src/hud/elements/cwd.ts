@@ -7,7 +7,7 @@
 
 import { homedir } from 'node:os';
 import { basename, dirname } from 'node:path';
-import { dim } from '../colors.js';
+import { dim, grey } from '../colors.js';
 import type { CwdFormat } from '../types.js';
 
 /**
@@ -31,6 +31,14 @@ function pathToFileUrl(absPath: string): string {
     return `file:///${normalized}`;
   }
   return `file://${normalized}`;
+}
+
+/**
+ * Extract the last path segment from an absolute path, tolerating trailing slashes.
+ */
+function lastSegment(cwd: string): string {
+  const trimmed = cwd.replace(/[/\\]+$/, '');
+  return basename(trimmed) || trimmed;
 }
 
 /**
@@ -82,6 +90,10 @@ export function renderCwd(
       displayPath = parent ? `${parent}/${folder}` : folder;
       break;
     }
+    case 'last':
+      // Last path segment only, prefixed with an ellipsis (…/<leaf>).
+      displayPath = `…/${lastSegment(cwd)}`;
+      break;
     default:
       displayPath = cwd;
   }
@@ -94,4 +106,33 @@ export function renderCwd(
   }
 
   return rendered;
+}
+
+/**
+ * Render the last-segment directory for the `stacked` preset.
+ *
+ * Format: ▸ …/<leaf>  (dim glyph, grey path)   safeMode: …/<leaf>
+ *
+ * Suppressed entirely (returns null) when the last segment echoes the branch
+ * or worktree name, since that information is already shown by the branch
+ * segment on the same row.
+ *
+ * @param cwd - Absolute working directory
+ * @param branch - Current branch name (for echo suppression), if known
+ * @param worktreeName - Current worktree name (for echo suppression), if known
+ * @param safeMode - When true, drop the ▸ glyph
+ */
+export function renderStackedCwd(
+  cwd: string | undefined,
+  branch: string | null | undefined,
+  worktreeName: string | null | undefined,
+  safeMode = false,
+): string | null {
+  if (!cwd) return null;
+  const leaf = lastSegment(cwd);
+  if (!leaf) return null;
+  if (leaf === branch || leaf === worktreeName) return null;
+
+  const glyph = safeMode ? '' : `${dim('▸ ')}`; // ▸
+  return `${glyph}${grey(`…/${leaf}`)}`;
 }
