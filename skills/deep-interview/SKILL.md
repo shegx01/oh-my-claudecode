@@ -126,6 +126,7 @@ Deep Interview threshold: <resolvedThresholdPercent> (source: <resolvedThreshold
     "type": "greenfield|brownfield",
     "initial_idea": "<prompt-safe initial-context summary or user input>",
     "initial_context_summary": "<summary if oversized, else null>",
+    "resolved_facts_summary": null,
     "rounds": [],
     "current_ambiguity": 1.0,
     "threshold": <resolvedThreshold>,
@@ -143,6 +144,12 @@ Deep Interview threshold: <resolvedThresholdPercent> (source: <resolvedThreshold
   }
 }
 ```
+
+**State field notes:**
+- `initial_context_summary`: input-compression artifact. Set once at Phase 1 when the user's initial context is oversized and must be condensed to fit downstream prompts. It compresses the *starting* material. Distinct from the running facts summary.
+- `resolved_facts_summary`: a running, accumulating summary of facts that have been resolved across completed interview rounds. It is updated after each round by appending newly resolved facts (constraints confirmed, decisions locked, scope narrowed) — never by re-expanding raw Q&A. It drives the scoring window in Step 2c so the scoring prompt receives compact resolved context rather than the full growing transcript. Initialize as `null`; populate after Round 1 completes.
+
+**Update rule for `resolved_facts_summary`:** After each round's ambiguity score is computed, append the newly confirmed facts from that round (resolved constraints, scope decisions, named entities, locked assumptions) to `resolved_facts_summary`. Do not include raw Q&A text — distill only what was resolved or narrowed. This keeps the summary bounded even as the interview grows.
 
 5. **Announce the interview** to the user:
 
@@ -268,15 +275,18 @@ Options should include contextually relevant choices plus free-text.
 
 After receiving the user's answer, score clarity across all dimensions.
 
-**Scoring prompt** (use opus model, temperature 0.1 for consistency):
+**Scoring prompt** (use sonnet model, temperature 0.1 for consistency):
 
 ```
 Given the following interview transcript for a {greenfield|brownfield} project, score clarity on each dimension from 0.0 to 1.0. If the initial context or transcript was summarized for prompt safety, score from that summary plus the preserved round decisions/gaps; do not re-expand raw oversized context. Honor the locked Round 0 topology: score every active component independently and never drop confirmed sibling components just because one component is already clear.
 
 Original idea or prompt-safe initial-context summary: {idea_or_initial_context_summary}
 
-Transcript or prompt-safe transcript summary:
-{all rounds Q&A or summarized transcript}
+Resolved facts summary (accumulated from all prior rounds):
+{state.resolved_facts_summary or "none yet — Round 1"}
+
+Most recent rounds (verbatim, last 1–2 rounds only):
+{verbatim Q&A for the last 1–2 completed rounds}
 
 Locked topology:
 {state.topology.components and state.topology.deferrals}
@@ -523,6 +533,8 @@ After the spec is written, mark it `pending approval` and present execution opti
 
 ### Approval-Gated Refinement Path (Recommended)
 
+Socratic Q&A continues until ambiguity ≤ <resolvedThresholdPercent>, then the spec is crystallized and the pipeline proceeds through approval gates.
+
 ```
 Stage 1: Deep Interview          Stage 2: omc-plan consensus       Stage 3: Separate approval
 ┌─────────────────────┐    ┌───────────────────────────┐    ┌──────────────────────┐
@@ -551,7 +563,7 @@ Skipping any stage is possible but reduces quality assurance:
 - Use `AskUserQuestion` for each interview question — provides clickable UI with contextual options
 - Preserve the AskUserQuestion path for OMC-native interaction; do not introduce OMX-only structured-question transport into this skill
 - Use `Task(subagent_type="oh-my-claudecode:explore", model="haiku")` for brownfield codebase exploration (run BEFORE asking user about codebase)
-- Use opus model (temperature 0.1) for ambiguity scoring — consistency is critical
+- Use sonnet model (temperature 0.1) for ambiguity scoring — consistency is critical
 - Round 0 topology confirmation happens before ambiguity scoring; Phase 2 scoring must honor locked topology and rotate targeting across active components when more than one is present
 - Use `state_write` / `state_read` for interview state persistence; the initial and subsequent deep-interview state payloads must include `threshold_source` alongside `threshold`
 - Use `Write` tool to save the final spec to `.omc/specs/deep-interview-{slug}.md` exactly; use `.omc/state/` or `state_write` for ephemeral artifacts
@@ -709,83 +721,11 @@ Optional settings in `.claude/settings.json`:
       "enableChallengeAgents": true,
       "autoExecuteOnComplete": false,
       "defaultExecutionMode": null,
-      "scoringModel": "opus"
+      "scoringModel": "sonnet"
     }
   }
 }
 ```
-
-## Resume
-
-If interrupted, run `/deep-interview` again. The skill reads state from `.omc/state/deep-interview-state.json` and resumes from the last completed round.
-
-## Integration with Autopilot
-
-When autopilot receives a vague input (no file paths, function names, or concrete anchors), it can redirect to deep-interview:
-
-```
-User: "autopilot build me a thing"
-Autopilot: "Your request is quite open-ended. Would you like to run a deep interview first to clarify requirements?"
-  [Yes, interview first] [No, expand directly]
-```
-
-If the user chooses interview, autopilot invokes `/deep-interview`. When the interview completes and the user selects "Execute with autopilot", the spec becomes Phase 0 output and autopilot continues from Phase 1 (Planning).
-
-## Approval-Gated Pipeline: deep-interview → omc-plan → pending approval
-
-The recommended refinement path chains clarity and feasibility gates, then stops for explicit execution approval:
-
-```
-/deep-interview "vague idea"
-  → Socratic Q&A until ambiguity ≤ <resolvedThresholdPercent>
-  → Spec written to .omc/specs/deep-interview-{slug}.md
-  → User explicitly selects "Refine with omc-plan consensus"
-  → /omc-plan --consensus --direct (spec as input, skip interview)
-    → Planner creates implementation plan from spec
-    → Architect reviews for architectural soundness
-    → Critic validates quality and testability
-    → Loop until consensus (max 5 iterations)
-    → Consensus plan written to .omc/plans/
-  → Stop with the consensus plan marked pending approval
-  → Only a separate explicit execution approval may invoke team/ralph/autopilot
-```
-
-**The omc-plan skill receives the spec with `--consensus --direct` flags** because the deep interview already did the requirements gathering. The `--direct` flag (supported by the omc-plan skill, which ralplan aliases) skips the interview phase and goes straight to Planner → Architect → Critic consensus. The consensus plan includes:
-- RALPLAN-DR summary (Principles, Decision Drivers, Options)
-- ADR (Decision, Drivers, Alternatives, Why chosen, Consequences)
-- Testable acceptance criteria (inherited from deep-interview spec)
-- Implementation steps with file references
-
-**Execution is a separate approval-gated step.** The deep-interview and omc-plan skills must not auto-invoke autopilot, team, ralph, or any other execution skill merely because a spec or plan exists.
-
-## Integration with Ralplan Gate
-
-The ralplan pre-execution gate already redirects vague prompts to planning. Deep interview can serve as an alternative redirect target for prompts that are too vague even for ralplan:
-
-```
-Vague prompt → ralplan gate → deep-interview (if extremely vague) → omc-plan (with clear spec) → pending approval → explicitly approved execution
-```
-
-## Brownfield vs Greenfield Weights
-
-| Dimension | Greenfield | Brownfield |
-|-----------|-----------|------------|
-| Goal Clarity | 40% | 35% |
-| Constraint Clarity | 30% | 25% |
-| Success Criteria | 30% | 25% |
-| Context Clarity | N/A | 15% |
-
-Brownfield adds Context Clarity because modifying existing code safely requires understanding the system being changed.
-
-## Challenge Agent Modes
-
-| Mode | Activates | Purpose | Prompt Injection |
-|------|-----------|---------|-----------------|
-| Contrarian | Round 4+ | Challenge assumptions | "What if the opposite were true?" |
-| Simplifier | Round 6+ | Remove complexity | "What's the simplest version?" |
-| Ontologist | Round 8+ (if ambiguity > 0.3) | Find essence | "What IS this, really?" |
-
-Each mode is used exactly once, then normal Socratic questioning resumes. Modes are tracked in state to prevent repetition.
 
 ## Ambiguity Score Interpretation
 
@@ -797,6 +737,8 @@ Each mode is used exactly once, then normal Socratic questioning resumes. Modes 
 | Moderate ambiguity | Significant gaps | Focus on weakest dimensions |
 | High ambiguity | Very unclear | May need reframing (Ontologist) |
 | Extreme ambiguity | Almost nothing known | Early stages, keep going |
+
+Advanced integration notes and pipeline details: see skills/deep-interview/ADVANCED.md (load on demand)
 </Advanced>
 
 Task: {{ARGUMENTS}}

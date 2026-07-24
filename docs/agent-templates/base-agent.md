@@ -13,7 +13,7 @@ When orchestrators delegate to this agent, they should wrap task descriptions wi
 - Agent uses tools directly (Read, Write, Edit, Bash, etc.)
 - Agent reports results with absolute file paths
 
-See `src/agents/preamble.ts` for the `wrapWithPreamble()` utility.
+The repo brief is auto-injected: when an implementation-class agent is spawned, the SubagentStart hook (`src/hooks/repo-brief-hook.ts`) gathers cheap repo facts (package.json scripts, ralph progress patterns), builds a `## Repo Brief` block via `buildRepoBrief()` (`src/agents/preamble.ts`), and injects it into the spawned agent's context (SubagentStart `additionalContext` lands in the subagent's own transcript). No orchestrator action is required. The brief is additive-only — it never substitutes for reading the files being changed.
 
 ## Common Protocol
 

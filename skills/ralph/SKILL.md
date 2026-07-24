@@ -79,6 +79,7 @@ By default, ralph operates in PRD mode. A scaffold `prd.json` is auto-generated 
      - Simple lookups: LOW tier (Haiku) -- "What does this function return?"
      - Standard work: MEDIUM tier (Sonnet) -- "Add error handling to this module"
      - Complex analysis: HIGH tier (Opus) -- "Debug this race condition"
+   - The repo brief is injected AUTOMATICALLY: when an executor is spawned, the SubagentStart hook (`src/hooks/repo-brief-hook.ts`) reads a `## Codebase Facts`/`## Codebase Patterns` block from `progress.txt` (plus package.json scripts), builds the `## Repo Brief` via `buildRepoBrief()`, and injects it into the executor's context. You do not prepend it by hand. It stays additive-only: executors MUST still Read every file they modify and Grep the immediate area -- the brief never substitutes for reading changed code.
    - If during implementation you discover sub-tasks, add them as new stories to the active PRD file
    - Run long operations in background: Builds, installs, test suites use `run_in_background: true`
 
@@ -90,7 +91,14 @@ By default, ralph operates in PRD mode. A scaffold `prd.json` is auto-generated 
 5. **Mark story complete**:
    a. When ALL acceptance criteria are verified, set `passes: true` for this story in the active PRD file
    b. Record progress in `progress.txt`: what was implemented, files changed, learnings for future iterations
-   c. Add any discovered codebase patterns to `progress.txt`
+   c. Record any discovered codebase conventions, key module paths, and build/test/lint commands in `progress.txt` under a `## Codebase Facts` heading. Use this structure:
+      ```
+      ## Codebase Facts
+      - conventions: <naming style, error handling patterns, import style>
+      - key-paths: <critical file locations discovered>
+      - commands: <build / test / lint commands confirmed working>
+      ```
+      Facts are ADDITIVE across iterations -- append new discoveries; do not remove prior entries. Next-iteration executors receive this block as their repo brief.
 
 6. **Check PRD completion**:
    a. Read the active PRD file -- are ALL stories marked `passes: true`?
@@ -111,17 +119,22 @@ By default, ralph operates in PRD mode. A scaffold `prd.json` is auto-generated 
    - The selected reviewer verifies against the SPECIFIC acceptance criteria from prd.json, not vague "is it done?"
    - **On APPROVAL: immediately proceed to Step 7.5 in the same turn. Do NOT pause to report the verdict to the user — reporting happens only at Step 8 (`/oh-my-claudecode:cancel`) or on rejection (Step 9). Treating an approved verdict as a reporting checkpoint is a polite-stop anti-pattern.**
 
-7.5 **Mandatory Deslop Pass** (runs unconditionally after Step 7 approval, unless `{{PROMPT}}` contains `--no-deslop`):
+7.5 **Mandatory Deslop Pass** (runs after Step 7 approval, unless `{{PROMPT}}` contains `--no-deslop`):
 
-- **Invoke the `ai-slop-cleaner` skill via the Skill tool: `Skill("ai-slop-cleaner")`.** Run in standard mode (not `--review`) on the files changed during the current Ralph session only.
+- **Diff-size gate:** Before invoking the deslop pass, count the changed files and total changed lines for this Ralph session (e.g. via `git diff --stat`).
+  - **Trivial diff (<5 files AND <50 changed lines):** skip the full ai-slop-cleaner pass; run a lightweight lint + typecheck only (e.g. `npm run lint` / `npm run typecheck` scoped to the changed files). Proceed to Step 7.6.
+  - **Non-trivial diff (5+ files OR 50+ changed lines):** run the full deslop pass as described below.
+- **Full deslop pass (non-trivial diffs only):** Invoke the `ai-slop-cleaner` skill via the Skill tool: `Skill("ai-slop-cleaner")`. Run in standard mode (not `--review`) on the files changed during the current Ralph session only.
 - **ai-slop-cleaner is a SKILL, not an agent.** Do NOT call it via `Task(subagent_type="oh-my-claudecode:ai-slop-cleaner")` — that subagent type does not exist and the call will fail with "Agent type not found". If you see that error, retry with the Skill tool — do NOT substitute a similarly-named agent like `code-simplifier` as a "closest match".
 - Keep the scope bounded to the Ralph changed-file set; do not broaden the cleanup pass to unrelated files.
 - If the reviewer approved the implementation but the deslop pass introduces follow-up edits, keep those edits inside the same changed-file scope before proceeding.
 
   7.6 **Regression Re-verification**:
 
-- After the deslop pass, re-run all relevant tests, build, and lint checks for the Ralph session.
-- Read the output and confirm the post-deslop regression run actually passes.
+- **Diff-size gate:** Apply the same threshold from Step 7.5.
+  - **Trivial diff (<5 files AND <50 changed lines):** confirm the lightweight lint + typecheck from Step 7.5 passed. That is sufficient; skip the full regression re-run.
+  - **Non-trivial diff (5+ files OR 50+ changed lines):** re-run all relevant tests, build, and lint checks for the Ralph session.
+- Read the output and confirm the regression run actually passes.
 - If regression fails, roll back the cleaner changes or fix the regression, then rerun the verification loop until it passes.
 - Only proceed to completion after the post-deslop regression run passes (or `--no-deslop` was explicitly specified).
 
