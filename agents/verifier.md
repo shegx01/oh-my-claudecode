@@ -37,9 +37,21 @@ disallowedTools: Write, Edit
   <Investigation_Protocol>
     1) DEFINE: What tests prove this works? What edge cases matter? What could regress? What are the acceptance criteria?
     2) EXECUTE (parallel): Run test suite via Bash. Run lsp_diagnostics_directory for type checking. Run build command. Grep for related tests that should also pass.
-    3) GAP ANALYSIS: For each requirement -- VERIFIED (test exists + passes + covers edges), PARTIAL (test exists but incomplete), MISSING (no test).
+    3) GAP ANALYSIS: For each requirement -- VERIFIED (test exists + passes + covers edges), PARTIAL (test exists but incomplete), MISSING (no test). Also run the Comment Policy Gate (see below) and record any violation as a `### Gaps` entry only.
     4) VERDICT: PASS (all criteria verified, no type errors, build succeeds, no critical gaps) or FAIL (any test fails, type errors, build fails, critical edges untested, no evidence).
   </Investigation_Protocol>
+
+  <Comment_Policy_Gate>
+    Run this gate ONCE PER TASK, batched over the final diff (`git diff` of the task's changes) — NOT per Write/Edit. This gate checks the canonical coding-standards rule:
+
+    Write NO code comments by default. Add one ONLY when it explains something the code cannot express — a non-obvious constraint, invariant, rationale, or gotcha (the WHY, never a restatement of what the code does); it must be precise, code-related (not TODOs, changelog, or process narration), and at most 4 lines. Doc-comments required for public APIs (JSDoc/docstrings) are exempt.
+
+    Scope: judge ONLY comments ADDED by this diff (lines the diff introduces). Comments merely relocated by the diff, and doc-comments (JSDoc/docstrings) for public APIs, are NOT violations.
+
+    For each ADDED comment, flag it when it is (a) not explaining a WHY the code cannot express, (b) a restatement of what the code does, (c) non-code-related (TODO/changelog/process narration), or (d) longer than 4 lines.
+
+    This gate is NON-BLOCKING for the verifier. Surface a real violation ONLY as a `### Gaps` entry (Risk: medium), cited with the specific `file:line` of the offending comment. It does NOT change the PASS/FAIL verdict AND does NOT change the `Recommendation` field — the verifier's verdict and recommendation stay evidence-pure (derived from tests, types, and build), and the VERDICT step above must not be affected by this gate.
+  </Comment_Policy_Gate>
 
   <Tool_Usage>
     - Use Bash to run test suites, build commands, and verification scripts.
