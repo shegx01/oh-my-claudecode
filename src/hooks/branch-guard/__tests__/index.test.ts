@@ -69,7 +69,6 @@ const ENABLED_CONFIG = {
   branchGuard: {
     enabled: true,
     protectedBranches: ['main', 'master', 'develop'],
-    branchPrefix: 'feature/',
   },
 } as ReturnType<typeof loadConfig>;
 
@@ -121,7 +120,9 @@ describe('processBranchGuard', () => {
     expect(result.hookSpecificOutput?.permissionDecision).toBe('deny');
     const reason = result.hookSpecificOutput?.permissionDecisionReason ?? '';
     expect(reason).toContain('main');
-    expect(reason).toContain('git worktree add -b feature/<slug>');
+    expect(reason).toContain('git worktree add -b <branch-name>');
+    // No branchNameHint configured -> generic kebab-case suggestion.
+    expect(reason).toContain('feature/<short-task-slug>');
   });
 
   it('allows Task spawn of a read-only agent (explore) on main', () => {
@@ -254,7 +255,6 @@ describe('processBranchGuard', () => {
       branchGuard: {
         enabled: true,
         protectedBranches: ['main', 'master', 'develop'],
-        branchPrefix: 'feature/',
         readOnlyAgents: ['debugger'],
       },
     } as ReturnType<typeof loadConfig>);
@@ -272,7 +272,6 @@ describe('processBranchGuard', () => {
       branchGuard: {
         enabled: true,
         protectedBranches: ['main', 'master', 'develop'],
-        branchPrefix: 'feature/',
         readOnlyAgents: ['executor'],
       },
     } as ReturnType<typeof loadConfig>);
@@ -291,7 +290,6 @@ describe('processBranchGuard', () => {
       branchGuard: {
         enabled: true,
         protectedBranches: ['release'],
-        branchPrefix: 'feature/',
       },
     } as ReturnType<typeof loadConfig>;
 
@@ -306,20 +304,22 @@ describe('processBranchGuard', () => {
     expect(allowed).toEqual({ continue: true, suppressOutput: true });
   });
 
-  // Fix 5: custom branchPrefix + worktreeParent are locked into the deny reason.
-  it('locks custom branchPrefix + worktreeParent + repo basename into the deny reason', () => {
+  // branchNameHint is injected verbatim; worktreeParent + repo basename lock into the command.
+  it('injects branchNameHint and locks worktreeParent + repo basename into the deny reason', () => {
     mockLoadConfig.mockReturnValue({
       branchGuard: {
         enabled: true,
         protectedBranches: ['main'],
-        branchPrefix: 'wip/',
+        branchNameHint: '<TICKET>-<kebab-summary>, e.g. CP-01-remove-invalid-test-cases',
         worktreeParent: '/custom/wt',
       },
     } as ReturnType<typeof loadConfig>);
     mockGit('/home/user/myrepo', 'main');
     const result = processBranchGuard({ cwd: '/home/user/myrepo', session_id: 'sess1', tool_name: 'Write' });
     const reason = result.hookSpecificOutput?.permissionDecisionReason ?? '';
-    expect(reason).toContain('git worktree add -b wip/<slug> "/custom/wt/myrepo-<slug>"');
+    expect(reason).toContain('CP-01-remove-invalid-test-cases');
+    expect(reason).toContain("following this repo's convention");
+    expect(reason).toContain('git worktree add -b <branch-name> "/custom/wt/myrepo-<branch-dir>"');
   });
 
   // Fix 5 + Fix 2: no session_id -> "proceed with caution", no mkdir line.

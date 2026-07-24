@@ -937,7 +937,7 @@ describe("loadConfig() — branchGuard validation", () => {
         enabled: true,
         protectedBranches: ["main", "release"],
         readOnlyAgents: ["explore"],
-        branchPrefix: "feature/",
+        branchNameHint: "<TICKET>-<kebab-summary>, e.g. CP-01-remove-invalid-test-cases",
         worktreeParent: "/custom/wt",
       },
       () => {
@@ -960,9 +960,9 @@ describe("loadConfig() — branchGuard validation", () => {
     });
   });
 
-  it("rejects a branchPrefix with shell metacharacters", () => {
-    withProjectConfig({ branchPrefix: "feature/;rm -rf" }, () => {
-      expect(() => loadConfig()).toThrow(/branchGuard\.branchPrefix/);
+  it("rejects a branchNameHint with shell metacharacters", () => {
+    withProjectConfig({ branchNameHint: "feature/$(rm -rf)" }, () => {
+      expect(() => loadConfig()).toThrow(/branchGuard\.branchNameHint/);
     });
   });
 

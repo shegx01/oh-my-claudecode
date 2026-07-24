@@ -274,7 +274,7 @@ Configure it under `branchGuard` in `.claude/omc.jsonc` (or the global config):
   "branchGuard": {
     "enabled": true,
     "protectedBranches": ["main", "master", "develop"],
-    "branchPrefix": "feature/",
+    "branchNameHint": "<TICKET>-<kebab-summary>, e.g. CP-01-remove-invalid-test-cases",
     "worktreeParent": "/path/to/worktrees",
     "readOnlyAgents": ["explore", "code-reviewer"]
   }
@@ -283,11 +283,11 @@ Configure it under `branchGuard` in `.claude/omc.jsonc` (or the global config):
 
 - **`enabled`** (boolean, default `false`) — turn the guard on or off. The `OMC_BRANCH_GUARD_ENABLED` environment variable overrides this flag (`true`/`false`).
 - **`protectedBranches`** (string[], default `["main", "master", "develop"]`) — the branches on which writes are blocked. Setting this **replaces** the default list rather than extending it.
-- **`branchPrefix`** (string, default `"feature/"`) — prefix applied to the suggested new branch name in the guard message.
+- **`branchNameHint`** (string, optional) — the repo's branch-naming convention, injected verbatim into the guard message. Because a ticket key (e.g. `CP-01`, `IP-02`) is per-task rather than fixed, config carries only the convention — the assistant resolves the concrete name and asks the user for the ticket key. Example: `"<TICKET>-<kebab-summary>, e.g. CP-01-remove-invalid-test-cases"`. Omit it for a generic kebab-case suggestion (`feature/<short-task-slug>`).
 - **`worktreeParent`** (string, default: the repo's parent directory) — parent directory for the suggested worktree path.
 - **`readOnlyAgents`** (string[]) — subagent types that are write-incapable and exempt from the guard. Setting this **replaces** the default exempt set (read-only OMC/harness agents such as `explore`, `analyst`, `architect`, `code-reviewer`, `critic`, `security-reviewer`, `document-specialist`, `scientist`, `verifier`, plus native catch-alls). Matching is case-insensitive and ignores a leading `oh-my-claudecode:` namespace prefix.
 
-`branchPrefix` and `worktreeParent` are interpolated into the git command shown to the assistant, so values containing shell/flag-injection metacharacters (`;`, `|`, `&`, `$`, backtick, quotes, newlines, or a leading `-`) are rejected at config load time.
+`branchNameHint` and `worktreeParent` flow into the git command shown to the assistant, so values containing shell/flag-injection metacharacters (`;`, `|`, `&`, `$`, backtick, quotes, newlines, or a leading `-`) are rejected at config load time.
 
 **Per-session bypass**: if the user declines the guard and wants to keep working on the protected branch, the guard message emits a `mkdir -p … && touch …` command that creates a `.branch-guard-ack` marker under `.omc/state/sessions/{sessionId}/`. Once that marker exists, the guard stays silent for the rest of that session.
 

@@ -267,8 +267,8 @@ export interface PluginConfig {
     enabled?: boolean;
     /** Branches on which write-capable tools are blocked. Default: main, master, develop */
     protectedBranches?: string[];
-    /** Prefix applied to the suggested new branch name. Default: feature/ */
-    branchPrefix?: string;
+    /** Branch-naming convention injected into the prompt (e.g. "<TICKET>-<kebab-summary>, e.g. CP-01-remove-invalid-test-cases"). The assistant resolves the concrete name, asking for the ticket key. Omit for a generic kebab-case suggestion. */
+    branchNameHint?: string;
     /** Parent directory for the suggested worktree. Default: the repo's parent dir. */
     worktreeParent?: string;
     /** Subagent types that are write-incapable and exempt from the guard. */

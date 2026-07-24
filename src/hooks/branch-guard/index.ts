@@ -100,12 +100,17 @@ function resolveAckPath(cwd: string, sessionId?: string): string | null {
 
 function buildGuardMessage(params: {
   branch: string;
-  branchPrefix: string;
+  branchNameHint?: string;
   worktreeParent: string;
   repo: string;
   ackPath: string | null;
 }): string {
-  const { branch, branchPrefix, worktreeParent, repo, ackPath } = params;
+  const { branch, branchNameHint, worktreeParent, repo, ackPath } = params;
+  // Ticket keys (CP-01, IP-02) are per-task, so config carries only the
+  // convention — the assistant resolves the concrete name, asking the user.
+  const nameGuidance = branchNameHint
+    ? `following this repo's convention: ${branchNameHint} (ask the user for the ticket key if one is required)`
+    : `as a short kebab-case name (e.g. feature/<short-task-slug>)`;
   const declineStep = ackPath
     ? ` • If they DECLINE and want to keep working on "${branch}" anyway, run:\n` +
       // ack dir is created lazily by mode state, so ensure it exists before touching
@@ -116,10 +121,9 @@ function buildGuardMessage(params: {
   return (
     `⛔ Branch guard: you are on protected branch "${branch}". Write-capable work is blocked here.\n` +
     `Ask the user whether to create a new isolated branch + worktree before proceeding.\n` +
-    ` • Derive a short kebab-case <slug> from the task and use the SAME slug in both the branch name and the directory.\n` +
-    ` • If they CONFIRM, run:\n` +
-    `     git worktree add -b ${branchPrefix}<slug> "${worktreeParent}/${repo}-<slug>"\n` +
-    `   then continue all work from that new worktree directory.\n` +
+    ` • If they CONFIRM, choose a branch name ${nameGuidance}, then run:\n` +
+    `     git worktree add -b <branch-name> "${worktreeParent}/${repo}-<branch-dir>"\n` +
+    `   where <branch-dir> is <branch-name> with any "/" replaced by "-"; continue all work from that directory.\n` +
     declineStep
   );
 }
@@ -174,7 +178,7 @@ export function processBranchGuard(input: BranchGuardInput): HookOutput {
       return ALLOW;
     }
 
-    const branchPrefix = branchGuard.branchPrefix ?? 'feature/';
+    const branchNameHint = branchGuard.branchNameHint;
     const worktreeParent = branchGuard.worktreeParent ?? dirname(repoRoot);
     const repo = basename(repoRoot);
 
@@ -185,7 +189,7 @@ export function processBranchGuard(input: BranchGuardInput): HookOutput {
         permissionDecision: 'deny',
         permissionDecisionReason: buildGuardMessage({
           branch,
-          branchPrefix,
+          branchNameHint,
           worktreeParent,
           repo,
           ackPath,

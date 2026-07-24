@@ -176,7 +176,6 @@ export function buildDefaultConfig(): PluginConfig {
     branchGuard: {
       enabled: false,
       protectedBranches: ["main", "master", "develop"],
-      branchPrefix: "feature/",
     },
     planOutput: {
       directory: ".omc/plans",
@@ -784,8 +783,8 @@ export function validateAutopilotConfig(config: PluginConfig): void {
   }
 }
 
-// branchPrefix / worktreeParent are interpolated into the git command shown to
-// the assistant, so reject shell/flag-injection metacharacters. Mirrors the
+// branchNameHint / worktreeParent flow into the git command shown to the
+// assistant, so reject shell/flag-injection metacharacters. Mirrors the
 // merge-coordinator branch-name guard: a leading "-" (flag injection) plus
 // `;`, `|`, `&`, `$`, backtick, quotes, and newlines are all disallowed.
 const BRANCH_GUARD_UNSAFE_RE = /[;|&$`'"\n\r]/;
@@ -832,13 +831,13 @@ export function validateBranchGuardConfig(config: PluginConfig): void {
     assertStringArray(branchGuard.readOnlyAgents, "branchGuard.readOnlyAgents");
   }
 
-  if (branchGuard.branchPrefix !== undefined) {
-    if (typeof branchGuard.branchPrefix !== "string") {
+  if (branchGuard.branchNameHint !== undefined) {
+    if (typeof branchGuard.branchNameHint !== "string") {
       throw new Error(
-        `[OMC] branchGuard.branchPrefix: must be a string, got ${typeof branchGuard.branchPrefix}`,
+        `[OMC] branchGuard.branchNameHint: must be a string, got ${typeof branchGuard.branchNameHint}`,
       );
     }
-    assertBranchGuardSafeString(branchGuard.branchPrefix, "branchGuard.branchPrefix");
+    assertBranchGuardSafeString(branchGuard.branchNameHint, "branchGuard.branchNameHint");
   }
 
   if (branchGuard.worktreeParent !== undefined) {
@@ -1482,10 +1481,10 @@ export function generateConfigSchema(): object {
             description:
               "Branches on which write-capable tools are blocked (replaces the default [main, master, develop] rather than extending it)",
           },
-          branchPrefix: {
+          branchNameHint: {
             type: "string",
-            default: "feature/",
-            description: "Prefix applied to the suggested new branch name",
+            description:
+              "Branch-naming convention injected into the guard prompt (e.g. '<TICKET>-<kebab-summary>, e.g. CP-01-remove-invalid-test-cases'). The assistant resolves the concrete name and asks for the ticket key; omit for a generic kebab-case suggestion",
           },
           worktreeParent: {
             type: "string",
