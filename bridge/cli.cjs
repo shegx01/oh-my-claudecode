@@ -3113,6 +3113,19 @@ var init_types = __esm({
   }
 });
 
+// src/lib/paths.ts
+var OMC_PLUGIN_MARKETPLACE_SLUG, OMC_PLUGIN_PACKAGE_NAME, OMC_PLUGIN_CACHE_REL, OMC_PLUGIN_MARKETPLACE_REL, OMC_CONFIG_FILE_REL;
+var init_paths = __esm({
+  "src/lib/paths.ts"() {
+    "use strict";
+    OMC_PLUGIN_MARKETPLACE_SLUG = "omcx";
+    OMC_PLUGIN_PACKAGE_NAME = "oh-my-claudecode";
+    OMC_PLUGIN_CACHE_REL = `plugins/cache/${OMC_PLUGIN_MARKETPLACE_SLUG}/${OMC_PLUGIN_PACKAGE_NAME}`;
+    OMC_PLUGIN_MARKETPLACE_REL = `plugins/marketplaces/${OMC_PLUGIN_MARKETPLACE_SLUG}`;
+    OMC_CONFIG_FILE_REL = ".omc-config.json";
+  }
+});
+
 // src/utils/paths.ts
 function toForwardSlash(path25) {
   return path25.replace(/\\/g, "/");
@@ -3326,13 +3339,14 @@ function purgeStalePluginCacheVersions(options) {
   return result;
 }
 var import_path2, import_fs, import_os2, STALE_THRESHOLD_MS;
-var init_paths = __esm({
+var init_paths2 = __esm({
   "src/utils/paths.ts"() {
     "use strict";
     import_path2 = require("path");
     import_fs = require("fs");
     import_os2 = require("os");
     init_config_dir();
+    init_paths();
     STALE_THRESHOLD_MS = 24 * 60 * 60 * 1e3;
   }
 });
@@ -4543,7 +4557,7 @@ var init_loader = __esm({
     import_fs2 = require("fs");
     import_path3 = require("path");
     init_types();
-    init_paths();
+    init_paths2();
     init_jsonc();
     init_models();
     init_types2();
@@ -6365,7 +6379,7 @@ var init_security_config = __esm({
     import_fs13 = require("fs");
     import_path18 = require("path");
     init_jsonc();
-    init_paths();
+    init_paths2();
     DEFAULTS = {
       restrictToolPaths: false,
       pythonSandbox: false,
@@ -6463,7 +6477,7 @@ function validatePathSegment(segment, name) {
   }
 }
 var fs2, path, os2, crypto2, SHORT_SESSION_ID_LENGTH, WINDOWS_RESERVED_NAMES;
-var init_paths2 = __esm({
+var init_paths3 = __esm({
   "src/tools/python-repl/paths.ts"() {
     "use strict";
     fs2 = __toESM(require("fs"), 1);
@@ -7309,7 +7323,7 @@ var init_bridge_manager = __esm({
     import_url6 = require("url");
     import_child_process10 = require("child_process");
     import_util6 = require("util");
-    init_paths2();
+    init_paths3();
     init_security_config();
     init_atomic_write();
     init_platform();
@@ -15393,25 +15407,12 @@ var init_mcp_registry = __esm({
     import_os11 = require("os");
     import_path56 = require("path");
     init_config_dir();
-    init_paths();
+    init_paths2();
     MANAGED_START = "# BEGIN OMC MANAGED MCP REGISTRY";
     MANAGED_END = "# END OMC MANAGED MCP REGISTRY";
     DEFAULT_LAUNCHER_MCP_STARTUP_TIMEOUT_SEC = 15;
     CODEX_MCP_SERVER_NAME_PATTERN = /^[A-Za-z0-9_-]+$/;
     RETIRED_TEAM_MCP_PATH_PATTERN = /(^|[\\/])bridge[\\/]+team-mcp\.cjs$/i;
-  }
-});
-
-// src/lib/paths.ts
-var OMC_PLUGIN_MARKETPLACE_SLUG, OMC_PLUGIN_PACKAGE_NAME, OMC_PLUGIN_CACHE_REL, OMC_PLUGIN_MARKETPLACE_REL, OMC_CONFIG_FILE_REL;
-var init_paths3 = __esm({
-  "src/lib/paths.ts"() {
-    "use strict";
-    OMC_PLUGIN_MARKETPLACE_SLUG = "omc";
-    OMC_PLUGIN_PACKAGE_NAME = "oh-my-claudecode";
-    OMC_PLUGIN_CACHE_REL = `plugins/cache/${OMC_PLUGIN_MARKETPLACE_SLUG}/${OMC_PLUGIN_PACKAGE_NAME}`;
-    OMC_PLUGIN_MARKETPLACE_REL = `plugins/marketplaces/${OMC_PLUGIN_MARKETPLACE_SLUG}`;
-    OMC_CONFIG_FILE_REL = ".omc-config.json";
   }
 });
 
@@ -17985,7 +17986,7 @@ var init_installer = __esm({
     init_frontmatter();
     init_skininthegamebros_user();
     init_mcp_registry();
-    init_paths3();
+    init_paths();
     init_hud_wrapper_template();
     init_worktree_paths();
     init_user_skill_compat();
@@ -18252,7 +18253,7 @@ function restoreGlobalClaudeCodeIfNeeded(beforeUpdate, verbose = false) {
   return { restored: true };
 }
 function syncMarketplaceClone(verbose = false) {
-  const marketplacePath = (0, import_path59.join)(getClaudeConfigDir(), "plugins", "marketplaces", "omc");
+  const marketplacePath = (0, import_path59.join)(getClaudeConfigDir(), "plugins", "marketplaces", OMC_PLUGIN_MARKETPLACE_SLUG);
   if (!(0, import_fs48.existsSync)(marketplacePath)) {
     return { ok: true, message: "Marketplace clone not found; skipping" };
   }
@@ -18380,7 +18381,7 @@ function syncInstalledPluginRegistryVersion(newVersion, fallbackInstallPath) {
     let updated = false;
     for (const [pluginId, entriesValue] of Object.entries(plugins)) {
       const normalizedPluginId = pluginId.toLowerCase();
-      const isOmcPlugin = normalizedPluginId === "oh-my-claudecode@omc" || normalizedPluginId === "oh-my-claudecode";
+      const isOmcPlugin = normalizedPluginId === `oh-my-claudecode@${OMC_PLUGIN_MARKETPLACE_SLUG}` || normalizedPluginId === "oh-my-claudecode";
       if (!isOmcPlugin || !Array.isArray(entriesValue)) {
         continue;
       }
@@ -18429,7 +18430,7 @@ function shouldBlockStandaloneUpdateInCurrentSession() {
   return false;
 }
 function syncPluginCache(verbose = false) {
-  const pluginCacheRoot = (0, import_path59.join)(getClaudeConfigDir(), "plugins", "cache", "omc", "oh-my-claudecode");
+  const pluginCacheRoot = (0, import_path59.join)(getClaudeConfigDir(), "plugins", "cache", OMC_PLUGIN_MARKETPLACE_SLUG, OMC_PLUGIN_PACKAGE_NAME);
   if (!(0, import_fs48.existsSync)(pluginCacheRoot)) {
     return { synced: false, skipped: true, errors: [] };
   }
@@ -19078,9 +19079,9 @@ var init_auto_update = __esm({
     import_child_process18 = require("child_process");
     init_installer();
     init_config_dir();
-    init_paths();
+    init_paths2();
     init_security_config();
-    init_paths3();
+    init_paths();
     REPO_OWNER = "Yeachan-Heo";
     REPO_NAME = "oh-my-claudecode";
     GITHUB_API_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`;
@@ -25398,7 +25399,7 @@ var init_persistent_mode = __esm({
     import_path67 = require("path");
     init_security_config();
     init_config_dir();
-    init_paths();
+    init_paths2();
     init_ultrawork();
     init_worktree_paths();
     init_mode_state_io();
@@ -31192,7 +31193,7 @@ var init_session_registry = __esm({
     import_path75 = require("path");
     import_crypto20 = require("crypto");
     init_platform();
-    init_paths();
+    init_paths2();
     SECURE_FILE_MODE = 384;
     MAX_AGE_MS = 24 * 60 * 60 * 1e3;
     LOCK_TIMEOUT_MS = 2e3;
@@ -45860,7 +45861,7 @@ var init_reply_listener = __esm({
     init_tmux_utils();
     import_https2 = require("https");
     init_daemon_module_path();
-    init_paths();
+    init_paths2();
     init_tmux_detector();
     init_session_registry();
     init_config();
@@ -48072,7 +48073,7 @@ var init_code_simplifier = __esm({
     import_fs87 = require("fs");
     import_path103 = require("path");
     import_child_process30 = require("child_process");
-    init_paths();
+    init_paths2();
     DEFAULT_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".rs"];
     DEFAULT_MAX_FILES = 10;
     TRIGGER_MARKER_FILENAME = "code-simplifier-triggered.marker";
@@ -85644,7 +85645,7 @@ Replacement: ${replacement}
 var astTools = [astGrepSearchTool, astGrepReplaceTool];
 
 // src/tools/python-repl/tool.ts
-init_paths2();
+init_paths3();
 
 // src/tools/python-repl/session-lock.ts
 var fs4 = __toESM(require("fs/promises"), 1);
@@ -85655,7 +85656,7 @@ var crypto4 = __toESM(require("crypto"), 1);
 var import_child_process8 = require("child_process");
 var import_util5 = require("util");
 init_atomic_write();
-init_paths2();
+init_paths3();
 init_platform();
 var execFileAsync2 = (0, import_util5.promisify)(import_child_process8.execFile);
 var STALE_LOCK_AGE_MS = 6e4;
@@ -94988,7 +94989,7 @@ var path14 = __toESM(require("path"), 1);
 var import_child_process20 = require("child_process");
 init_worktree_paths();
 init_config_dir();
-init_paths();
+init_paths2();
 var import_fs51 = require("fs");
 
 // src/hooks/omc-orchestrator/constants.ts
@@ -98922,7 +98923,7 @@ var fs18 = __toESM(require("fs"), 1);
 // src/hooks/recovery/constants.ts
 var import_node_path16 = require("node:path");
 var import_node_os3 = require("node:os");
-init_paths();
+init_paths2();
 function getClaudeCodeStorageDir() {
   return (0, import_node_path16.join)(getDataDir(), "claude-code", "storage");
 }
@@ -99210,7 +99211,7 @@ var DEFAULT_FACTCHECK_POLICY = {
   enabled: false,
   mode: "quick",
   strict_project_patterns: [],
-  forbidden_path_prefixes: ["${CLAUDE_CONFIG_DIR}/plugins/cache/omc/"],
+  forbidden_path_prefixes: ["${CLAUDE_CONFIG_DIR}/plugins/cache/omcx/"],
   forbidden_path_substrings: ["/.omc/", ".omc-config.json"],
   readonly_command_prefixes: [
     "ls ",
@@ -100754,7 +100755,7 @@ var fs21 = __toESM(require("fs"), 1);
 var path24 = __toESM(require("path"), 1);
 init_atomic_write();
 init_worktree_paths();
-init_paths();
+init_paths2();
 var GLOBAL_STATE_DIR = getGlobalOmcStateRoot();
 var MAX_STATE_AGE_MS = 4 * 60 * 60 * 1e3;
 
@@ -101023,7 +101024,7 @@ var import_path133 = require("path");
 var import_url17 = require("url");
 var import_child_process38 = require("child_process");
 init_daemon_module_path();
-init_paths();
+init_paths2();
 init_tmux_detector();
 init_platform();
 var __filename3 = (0, import_url17.fileURLToPath)(importMetaUrl);
@@ -106077,7 +106078,7 @@ init_mcp_registry();
 init_config_dir();
 init_tmux_utils();
 init_tmux_clipboard();
-init_paths3();
+init_paths();
 var MADMAX_FLAG = "--madmax";
 var YOLO_FLAG = "--yolo";
 var CLAUDE_BYPASS_FLAG = "--dangerously-skip-permissions";

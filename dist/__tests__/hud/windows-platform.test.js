@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+vi.mock('node:child_process', async (importOriginal) => ({
+    ...(await importOriginal()),
+    execFileSync: vi.fn(),
+}));
+import { execFileSync } from 'node:child_process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const packageRoot = join(__dirname, '..', '..', '..');
@@ -26,8 +31,11 @@ function isWin32(platform) {
 function getSeparator(platform) {
     return isWin32(platform) ? ';' : ':';
 }
+// ASCII fallback fires on explicit safeMode:true OR Windows. Windows always
+// degrades regardless of the configured safeMode (glyph-based design ships the
+// real glyphs only on macOS/Linux with safeMode:false).
 function getSafeMode(configSafeMode, platform) {
-    return configSafeMode !== false && (configSafeMode || isWin32(platform));
+    return configSafeMode === true || isWin32(platform);
 }
 describe('Windows HUD Platform Fixes (#739)', () => {
     // =========================================================================
@@ -155,14 +163,19 @@ describe('Windows HUD Platform Fixes (#739)', () => {
     // P1: Git execFileSync argv on Windows
     // =========================================================================
     describe('P1: Git shell-free execFileSync on Windows', () => {
-        it('git.ts should call git via execFileSync argv with windowsHide', () => {
-            const content = readFileSync(join(packageRoot, 'src', 'hud', 'elements', 'git.ts'), 'utf-8');
-            expect(content).toContain("import { execFileSync } from 'node:child_process'");
-            expect(content).toContain("execFileSync('git', args, {");
-            expect(content).toContain('windowsHide: true');
-            expect(content).not.toContain("shell: process.platform === 'win32' ? 'cmd.exe' : undefined");
-            expect(content).not.toContain('cmd.exe');
-            expect(content).not.toContain('execSync');
+        it('invokes git with separate argv and hidden Windows process options', async () => {
+            const cwd = 'C:\\repo folder; & echo owned\\worktree';
+            vi.mocked(execFileSync).mockReturnValue('feature/space;name\\branch\n');
+            const { getGitBranch, resetGitCache } = await import('../../hud/elements/git.js');
+            resetGitCache();
+            expect(getGitBranch(cwd)).toBe('feature/space;name\\branch');
+            expect(execFileSync).toHaveBeenCalledWith('git', ['branch', '--show-current'], {
+                cwd,
+                encoding: 'utf-8',
+                timeout: 1000,
+                stdio: ['pipe', 'pipe', 'pipe'],
+                windowsHide: true,
+            });
         });
     });
     // =========================================================================
@@ -171,14 +184,14 @@ describe('Windows HUD Platform Fixes (#739)', () => {
     describe('P2: Safe mode auto-enable on Windows', () => {
         it('index.ts should auto-enable safe mode on Windows', () => {
             const content = readFileSync(join(packageRoot, 'src', 'hud', 'index.ts'), 'utf-8');
-            expect(content).toContain("process.platform === 'win32'");
-            expect(content).toContain('config.elements.safeMode !== false');
+            expect(content).toContain('process.platform === "win32"');
+            expect(content).toContain('config.elements.safeMode === true');
         });
         it('safe mode logic: config=false on Mac -> disabled', () => {
             expect(getSafeMode(false, 'darwin')).toBe(false);
         });
-        it('safe mode logic: config=false on Windows -> disabled (explicit override)', () => {
-            expect(getSafeMode(false, 'win32')).toBe(false);
+        it('safe mode logic: config=false on Windows -> enabled (Windows always ASCII)', () => {
+            expect(getSafeMode(false, 'win32')).toBe(true);
         });
         it('safe mode logic: config=true on Mac -> enabled', () => {
             expect(getSafeMode(true, 'darwin')).toBe(true);

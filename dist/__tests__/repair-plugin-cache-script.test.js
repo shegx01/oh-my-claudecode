@@ -26,7 +26,7 @@ describe('repair-plugin-cache.mjs', () => {
         const root = mkdtempSync(join(tmpdir(), 'omc-repair-plugin-cache-'));
         tempRoots.push(root);
         const configDir = join(root, '.claude');
-        const cacheBase = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+        const cacheBase = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
         const oldRoot = join(cacheBase, '4.11.6');
         const newRoot = join(cacheBase, '4.14.1');
         mkdirSync(join(configDir, 'plugins'), { recursive: true });
@@ -35,7 +35,7 @@ describe('repair-plugin-cache.mjs', () => {
         writeFileSync(join(configDir, 'plugins', 'installed_plugins.json'), JSON.stringify({
             version: 2,
             plugins: {
-                'oh-my-claudecode@omc': [{ installPath: oldRoot, version: '4.11.6', enabled: true }],
+                'oh-my-claudecode@omcx': [{ installPath: oldRoot, version: '4.11.6', enabled: true }],
             },
         }, null, 2));
         const result = spawnSync(process.execPath, [SCRIPT_PATH], {
@@ -46,7 +46,7 @@ describe('repair-plugin-cache.mjs', () => {
         expect(result.stderr).toBe('');
         expect(result.stdout).toContain('Repaired plugin cache references');
         const registry = JSON.parse(readFileSync(join(configDir, 'plugins', 'installed_plugins.json'), 'utf-8'));
-        expect(registry.plugins['oh-my-claudecode@omc'][0]).toMatchObject({
+        expect(registry.plugins['oh-my-claudecode@omcx'][0]).toMatchObject({
             installPath: newRoot,
             version: '4.14.1',
             enabled: true,
@@ -60,13 +60,13 @@ describe('repair-plugin-cache.mjs', () => {
         const root = mkdtempSync(join(tmpdir(), 'omc-repair-missing-cache-'));
         tempRoots.push(root);
         const configDir = join(root, '.claude');
-        const cacheBase = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+        const cacheBase = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
         const oldRoot = join(cacheBase, '4.11.6');
         const newRoot = join(cacheBase, '4.14.1');
         mkdirSync(join(configDir, 'plugins'), { recursive: true });
         writePluginRoot(newRoot, '4.14.1');
         writeFileSync(join(configDir, 'plugins', 'installed_plugins.json'), JSON.stringify({
-            'oh-my-claudecode@omc': [{ installPath: oldRoot, version: '4.11.6' }],
+            'oh-my-claudecode@omcx': [{ installPath: oldRoot, version: '4.11.6' }],
         }, null, 2));
         const result = spawnSync(process.execPath, [SCRIPT_PATH], {
             env: { ...process.env, CLAUDE_CONFIG_DIR: configDir, OMC_REPAIR_PLUGIN_CACHE_PLATFORM: 'linux' },
@@ -78,7 +78,7 @@ describe('repair-plugin-cache.mjs', () => {
         expect(readlinkSync(oldRoot)).toBe('4.14.1');
         expect(existsSync(join(oldRoot, 'hooks', 'hooks.json'))).toBe(true);
         const registry = JSON.parse(readFileSync(join(configDir, 'plugins', 'installed_plugins.json'), 'utf-8'));
-        expect(registry['oh-my-claudecode@omc'][0]).toMatchObject({
+        expect(registry['oh-my-claudecode@omcx'][0]).toMatchObject({
             installPath: newRoot,
             version: '4.14.1',
         });
@@ -87,7 +87,7 @@ describe('repair-plugin-cache.mjs', () => {
         const root = mkdtempSync(join(tmpdir(), 'omc-repair-unix-hooks-'));
         tempRoots.push(root);
         const configDir = join(root, '.claude');
-        const cacheBase = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+        const cacheBase = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
         const pluginRoot = join(cacheBase, '4.14.4');
         writePluginRoot(pluginRoot, '4.14.4');
         writeFileSync(join(pluginRoot, 'hooks', 'hooks.json'), JSON.stringify({
@@ -114,7 +114,7 @@ describe('repair-plugin-cache.mjs', () => {
         const root = mkdtempSync(join(tmpdir(), 'omc-repair-unix-bundled-hooks-'));
         tempRoots.push(root);
         const configDir = join(root, '.claude');
-        const cacheBase = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+        const cacheBase = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
         const pluginRoot = join(cacheBase, '4.14.4');
         writePluginRoot(pluginRoot, '4.14.4');
         writeFileSync(join(pluginRoot, 'hooks', 'hooks.json'), readFileSync(join(REPO_ROOT, 'hooks', 'hooks.json'), 'utf-8'));
@@ -138,7 +138,7 @@ describe('repair-plugin-cache.mjs', () => {
         const root = mkdtempSync(join(tmpdir(), 'omc-repair-win-hooks-'));
         tempRoots.push(root);
         const configDir = join(root, '.claude');
-        const cacheBase = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+        const cacheBase = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
         const pluginRoot = join(cacheBase, '4.14.4');
         writePluginRoot(pluginRoot, '4.14.4');
         writeFileSync(join(pluginRoot, 'hooks', 'hooks.json'), JSON.stringify({
@@ -160,12 +160,16 @@ describe('repair-plugin-cache.mjs', () => {
         const hooksJson = JSON.parse(readFileSync(join(pluginRoot, 'hooks', 'hooks.json'), 'utf-8'));
         expect(hooksJson.hooks.SessionEnd[0].hooks[0].command).toBe('node "$CLAUDE_PLUGIN_ROOT"/scripts/run.cjs "$CLAUDE_PLUGIN_ROOT"/scripts/session-end.mjs');
     });
-    it('setup instructions repair cache references before prompts and avoid direct cache deletion', () => {
+    it('setup instructions delegate cache resolution and retain phase repair without unsafe deletion', () => {
         const setupSkill = readFileSync(join(REPO_ROOT, 'skills', 'omc-setup', 'SKILL.md'), 'utf-8');
         const phase = readFileSync(join(REPO_ROOT, 'skills', 'omc-setup', 'phases', '02-configure.md'), 'utf-8');
-        expect(setupSkill).toContain('Active Plugin Root Resolution');
-        expect(setupSkill).toContain('repair-plugin-cache.mjs');
-        expect(setupSkill.indexOf('repair-plugin-cache.mjs', setupSkill.indexOf('Active Plugin Root Resolution'))).toBeLessThan(setupSkill.indexOf('## Pre-Setup Check'));
+        const setupInvocationIndex = setupSkill.indexOf('## Setup Invocation');
+        const cacheResolverIndex = setupSkill.indexOf('The script is the sole cache resolver.');
+        const preSetupCheckIndex = setupSkill.indexOf('## Pre-Setup Check');
+        expect(setupInvocationIndex).toBeGreaterThan(-1);
+        expect(cacheResolverIndex).toBeGreaterThan(setupInvocationIndex);
+        expect(cacheResolverIndex).toBeLessThan(preSetupCheckIndex);
+        expect(setupSkill).not.toContain('repair-plugin-cache.mjs');
         expect(phase).toContain('Repair Stale Plugin Cache References');
         expect(phase).toContain('repair-plugin-cache.mjs');
         expect(phase).not.toContain('rmSync(p.join(b,x)');

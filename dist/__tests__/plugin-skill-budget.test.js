@@ -101,7 +101,7 @@ describe('plugin skill context budget gate (issues #2943, #2986)', () => {
         const tempRoot = mkdtempSync(join(tmpdir(), 'omc-plugin-commands-cache-'));
         try {
             const sourceRoot = join(tempRoot, 'source');
-            const targetRoot = join(tempRoot, 'cache', 'omc', 'oh-my-claudecode', '4.14.1');
+            const targetRoot = join(tempRoot, 'cache', 'omcx', 'oh-my-claudecode', '4.14.1');
             mkdirSync(join(sourceRoot, '.claude-plugin'), { recursive: true });
             mkdirSync(join(sourceRoot, 'commands'), { recursive: true });
             mkdirSync(join(sourceRoot, 'dist', 'hooks'), { recursive: true });
@@ -116,6 +116,7 @@ describe('plugin skill context budget gate (issues #2943, #2986)', () => {
             writeFileSync(join(sourceRoot, 'commands', 'omc-setup.md'), 'Read skills/omc-setup/SKILL.md and pass $ARGUMENTS.\n');
             writeFileSync(join(sourceRoot, 'dist', 'hooks', 'skill-bridge.cjs'), 'console.log("skill bridge");\n');
             writeFileSync(join(sourceRoot, 'bridge', 'cli.cjs'), 'console.log("bridge");\n');
+            writeFileSync(join(sourceRoot, 'bridge', 'claude-md-coordinator.cjs'), 'console.log("CLAUDE.md coordinator");\n');
             writeFileSync(join(sourceRoot, 'hooks', 'hooks.json'), '{}\n');
             writeFileSync(join(sourceRoot, 'skills', 'plan', 'SKILL.md'), 'name: plan\n');
             writeFileSync(join(sourceRoot, 'package.json'), JSON.stringify({ name: 'oh-my-claude-sisyphus', version: '4.14.1' }));

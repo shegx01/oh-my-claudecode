@@ -9,6 +9,7 @@ import { join } from 'path';
 import { existsSync, readFileSync, readdirSync, statSync, unlinkSync, rmSync, symlinkSync } from 'fs';
 import { homedir } from 'os';
 import { getClaudeConfigDir } from './config-dir.js';
+import { OMC_PLUGIN_MARKETPLACE_SLUG, OMC_PLUGIN_PACKAGE_NAME } from '../lib/paths.js';
 /**
  * Convert a path to use forward slashes (for JSON/config files)
  * This is necessary because settings.json commands are executed
@@ -144,10 +145,10 @@ export function getGlobalOmcStateCandidates(...segments) {
  * Get the plugin cache base directory for oh-my-claudecode.
  * This is the directory containing version subdirectories.
  *
- * Structure: <configDir>/plugins/cache/omc/oh-my-claudecode/
+ * Structure: <configDir>/plugins/cache/omcx/oh-my-claudecode/
  */
 export function getPluginCacheBase() {
-    return join(getClaudeConfigDir(), 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    return join(getClaudeConfigDir(), 'plugins', 'cache', OMC_PLUGIN_MARKETPLACE_SLUG, OMC_PLUGIN_PACKAGE_NAME);
 }
 /**
  * Safely delete a file, ignoring ENOENT errors.

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
-import { dirname, join } from 'path';
+import { basename, dirname, join } from 'path';
 const ORIG_ENV = { ...process.env };
 function writeFile(path, content) {
     mkdirSync(dirname(path), { recursive: true });
@@ -12,6 +12,7 @@ function writePayloadTree(root, version = '9.9.9-test') {
     writeFile(join(root, 'dist', 'lib', 'worktree-paths.js'), 'export const test = true;\n');
     writeFile(join(root, 'dist', 'hooks', 'skill-bridge.cjs'), 'console.log("skill bridge");\n');
     writeFile(join(root, 'bridge', 'cli.cjs'), 'console.log("bridge");\n');
+    writeFile(join(root, 'bridge', 'claude-md-coordinator.cjs'), 'console.log("CLAUDE.md coordinator");\n');
     writeFile(join(root, 'hooks', 'hooks.json'), '{}\n');
     writeFile(join(root, 'scripts', 'run.cjs'), 'console.log("run");\n');
     writeFile(join(root, 'skills', 'plan', 'SKILL.md'), '# plan\n');
@@ -48,7 +49,7 @@ describe('syncInstalledPluginPayload', () => {
     });
     it('repairs incomplete cache installs from the known marketplace source instead of reusing the installed root', async () => {
         const configDir = process.env.CLAUDE_CONFIG_DIR;
-        const cacheRoot = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.12.0');
+        const cacheRoot = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.12.0');
         const sourceRoot = join(tempRoot, 'marketplace-source');
         writePayloadTree(sourceRoot);
         mkdirSync(join(cacheRoot, 'agents'), { recursive: true });
@@ -57,7 +58,7 @@ describe('syncInstalledPluginPayload', () => {
         writeFileSync(join(configDir, 'plugins', 'installed_plugins.json'), JSON.stringify({
             version: 2,
             plugins: {
-                'oh-my-claudecode@omc': [{ installPath: cacheRoot, version: '4.12.0' }],
+                'oh-my-claudecode@omcx': [{ installPath: cacheRoot, version: '4.12.0' }],
             },
         }, null, 2));
         writeFileSync(join(configDir, 'plugins', 'known_marketplaces.json'), JSON.stringify({
@@ -79,9 +80,45 @@ describe('syncInstalledPluginPayload', () => {
         expect(existsSync(join(cacheRoot, 'commands', 'omc-setup.md'))).toBe(true);
         expect(JSON.parse(readFileSync(join(cacheRoot, 'package.json'), 'utf-8')).version).toBe('9.9.9-test');
     });
+    it('excludes marketplace sources that canonicalize to an installed cache target', async () => {
+        const configDir = process.env.CLAUDE_CONFIG_DIR;
+        const cacheRoot = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.12.0');
+        const samePhysicalSourceRoot = `${cacheRoot}/../${basename(cacheRoot)}`;
+        const sourceRoot = join(tempRoot, 'alternate-marketplace-source');
+        writePayloadTree(sourceRoot);
+        mkdirSync(join(cacheRoot, 'agents'), { recursive: true });
+        writeFileSync(join(cacheRoot, 'agents', 'executor.md'), '# stale executor\n');
+        mkdirSync(join(configDir, 'plugins'), { recursive: true });
+        writeFileSync(join(configDir, 'plugins', 'installed_plugins.json'), JSON.stringify({
+            version: 2,
+            plugins: {
+                'oh-my-claudecode@omcx': [{ installPath: cacheRoot, version: '4.12.0' }],
+            },
+        }, null, 2));
+        writeFileSync(join(configDir, 'plugins', 'known_marketplaces.json'), JSON.stringify({
+            omc: {
+                installLocation: samePhysicalSourceRoot,
+                source: { source: 'directory', path: samePhysicalSourceRoot },
+            },
+            'oh-my-claudecode-local': {
+                installLocation: sourceRoot,
+                source: { source: 'directory', path: sourceRoot },
+            },
+        }, null, 2));
+        const installer = await freshInstaller();
+        const result = installer.syncInstalledPluginPayload();
+        expect(result.synced).toBe(true);
+        expect(result.errors).toEqual([]);
+        expect(result.sourceRoot).toBe(sourceRoot);
+        expect(result.sourceRoot).not.toBe(samePhysicalSourceRoot);
+        expect(existsSync(join(cacheRoot, 'package.json'))).toBe(true);
+        expect(JSON.parse(readFileSync(join(cacheRoot, 'package.json'), 'utf-8')).version).toBe('9.9.9-test');
+        const selfCopyResult = installer.copyPluginSyncPayload(samePhysicalSourceRoot, [cacheRoot]);
+        expect(selfCopyResult).toEqual({ synced: false, errors: [] });
+    });
     it('repairs incomplete cache installs during setup before plugin-provided file detection runs', async () => {
         const configDir = process.env.CLAUDE_CONFIG_DIR;
-        const cacheRoot = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.12.0');
+        const cacheRoot = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.12.0');
         const sourceRoot = join(tempRoot, 'marketplace-source-install');
         writePayloadTree(sourceRoot, '4.12.0');
         mkdirSync(join(cacheRoot, 'agents'), { recursive: true });
@@ -90,7 +127,7 @@ describe('syncInstalledPluginPayload', () => {
         writeFileSync(join(configDir, 'plugins', 'installed_plugins.json'), JSON.stringify({
             version: 2,
             plugins: {
-                'oh-my-claudecode@omc': [{ installPath: cacheRoot, version: '4.12.0' }],
+                'oh-my-claudecode@omcx': [{ installPath: cacheRoot, version: '4.12.0' }],
             },
         }, null, 2));
         writeFileSync(join(configDir, 'plugins', 'known_marketplaces.json'), JSON.stringify({
@@ -99,7 +136,7 @@ describe('syncInstalledPluginPayload', () => {
                 source: { source: 'directory', path: sourceRoot },
             },
         }, null, 2));
-        writeFileSync(join(configDir, 'settings.json'), JSON.stringify({ enabledPlugins: ['oh-my-claudecode@omc'] }, null, 2));
+        writeFileSync(join(configDir, 'settings.json'), JSON.stringify({ enabledPlugins: ['oh-my-claudecode@omcx'] }, null, 2));
         const installer = await freshInstaller();
         const result = installer.install({
             skipClaudeCheck: true,
@@ -119,14 +156,14 @@ describe('syncInstalledPluginPayload', () => {
     });
     it('does not accept a cache root as plugin-provided when required commands are missing', async () => {
         const configDir = process.env.CLAUDE_CONFIG_DIR;
-        const cacheRoot = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.14.4');
+        const cacheRoot = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.14.4');
         writePayloadTree(cacheRoot, '4.14.4');
         rmSync(join(cacheRoot, 'commands'), { recursive: true, force: true });
         mkdirSync(join(configDir, 'plugins'), { recursive: true });
         writeFileSync(join(configDir, 'plugins', 'installed_plugins.json'), JSON.stringify({
             version: 2,
             plugins: {
-                'oh-my-claudecode@omc': [{ installPath: cacheRoot, version: '4.14.4' }],
+                'oh-my-claudecode@omcx': [{ installPath: cacheRoot, version: '4.14.4' }],
             },
         }, null, 2));
         const installer = await freshInstaller();
@@ -138,14 +175,14 @@ describe('syncInstalledPluginPayload', () => {
     });
     it('rejects malformed plugin manifests instead of treating sentinel files as complete', async () => {
         const configDir = process.env.CLAUDE_CONFIG_DIR;
-        const cacheRoot = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.14.4');
+        const cacheRoot = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.14.4');
         writePayloadTree(cacheRoot, '4.14.4');
         writeFileSync(join(cacheRoot, '.claude-plugin', 'plugin.json'), '{not valid json');
         mkdirSync(join(configDir, 'plugins'), { recursive: true });
         writeFileSync(join(configDir, 'plugins', 'installed_plugins.json'), JSON.stringify({
             version: 2,
             plugins: {
-                'oh-my-claudecode@omc': [{ installPath: cacheRoot, version: '4.14.4' }],
+                'oh-my-claudecode@omcx': [{ installPath: cacheRoot, version: '4.14.4' }],
             },
         }, null, 2));
         const installer = await freshInstaller();
@@ -158,7 +195,7 @@ describe('syncInstalledPluginPayload', () => {
     });
     it('rejects partial command and manifest-declared skill surfaces', async () => {
         const configDir = process.env.CLAUDE_CONFIG_DIR;
-        const cacheRoot = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.14.4');
+        const cacheRoot = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.14.4');
         writePayloadTree(cacheRoot, '4.14.4');
         rmSync(join(cacheRoot, 'commands', 'omc-setup.md'), { force: true });
         writeFile(join(cacheRoot, 'commands', 'unrelated.md'), '# unrelated\n');
@@ -167,7 +204,7 @@ describe('syncInstalledPluginPayload', () => {
         writeFileSync(join(configDir, 'plugins', 'installed_plugins.json'), JSON.stringify({
             version: 2,
             plugins: {
-                'oh-my-claudecode@omc': [{ installPath: cacheRoot, version: '4.14.4' }],
+                'oh-my-claudecode@omcx': [{ installPath: cacheRoot, version: '4.14.4' }],
             },
         }, null, 2));
         const installer = await freshInstaller();
@@ -182,7 +219,7 @@ describe('syncInstalledPluginPayload', () => {
     });
     it('rejects schema-malformed plugin manifests even when payload files exist', async () => {
         const configDir = process.env.CLAUDE_CONFIG_DIR;
-        const cacheRoot = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.14.4');
+        const cacheRoot = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.14.4');
         writePayloadTree(cacheRoot, '4.14.4');
         writeFileSync(join(cacheRoot, '.claude-plugin', 'plugin.json'), JSON.stringify({
             name: 'oh-my-claudecode',
@@ -199,7 +236,7 @@ describe('syncInstalledPluginPayload', () => {
     });
     it('rejects manifest-declared skill paths that escape the plugin root', async () => {
         const configDir = process.env.CLAUDE_CONFIG_DIR;
-        const cacheRoot = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.14.4');
+        const cacheRoot = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.14.4');
         writePayloadTree(cacheRoot, '4.14.4');
         writeFileSync(join(cacheRoot, '.claude-plugin', 'plugin.json'), JSON.stringify({
             name: 'oh-my-claudecode',
@@ -213,10 +250,12 @@ describe('syncInstalledPluginPayload', () => {
     });
     it('rejects required plugin file paths that exist only as directories', async () => {
         const configDir = process.env.CLAUDE_CONFIG_DIR;
-        const cacheRoot = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.14.4');
+        const cacheRoot = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.14.4');
         writePayloadTree(cacheRoot, '4.14.4');
         rmSync(join(cacheRoot, 'dist', 'hooks', 'skill-bridge.cjs'), { force: true });
         mkdirSync(join(cacheRoot, 'dist', 'hooks', 'skill-bridge.cjs'), { recursive: true });
+        rmSync(join(cacheRoot, 'bridge', 'claude-md-coordinator.cjs'), { force: true });
+        mkdirSync(join(cacheRoot, 'bridge', 'claude-md-coordinator.cjs'), { recursive: true });
         rmSync(join(cacheRoot, 'commands', 'omc-setup.md'), { force: true });
         mkdirSync(join(cacheRoot, 'commands', 'omc-setup.md'), { recursive: true });
         rmSync(join(cacheRoot, 'skills', 'plan', 'SKILL.md'), { force: true });
@@ -226,13 +265,14 @@ describe('syncInstalledPluginPayload', () => {
         expect(validation.valid).toBe(false);
         expect(validation.errors).toEqual(expect.arrayContaining([
             'Missing required plugin payload file: dist/hooks/skill-bridge.cjs',
+            'Missing required plugin payload file: bridge/claude-md-coordinator.cjs',
             'Missing required plugin command file: commands/omc-setup.md',
             'Missing declared plugin skill file: skills/plan/SKILL.md',
         ]));
     });
-    it('repairs cache roots missing commands, runtime dist hook, and bridge from a complete source', async () => {
+    it('repairs cache roots missing commands, runtime dist hook, and bridge coordinator from a complete source', async () => {
         const configDir = process.env.CLAUDE_CONFIG_DIR;
-        const cacheRoot = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.14.4');
+        const cacheRoot = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.14.4');
         const sourceRoot = join(tempRoot, 'complete-marketplace-source');
         writePayloadTree(sourceRoot, '4.14.4');
         writePayloadTree(cacheRoot, '4.14.4');
@@ -243,7 +283,7 @@ describe('syncInstalledPluginPayload', () => {
         writeFileSync(join(configDir, 'plugins', 'installed_plugins.json'), JSON.stringify({
             version: 2,
             plugins: {
-                'oh-my-claudecode@omc': [{ installPath: cacheRoot, version: '4.14.4' }],
+                'oh-my-claudecode@omcx': [{ installPath: cacheRoot, version: '4.14.4' }],
             },
         }, null, 2));
         writeFileSync(join(configDir, 'plugins', 'known_marketplaces.json'), JSON.stringify({
@@ -260,10 +300,11 @@ describe('syncInstalledPluginPayload', () => {
         expect(existsSync(join(cacheRoot, 'commands', 'omc-setup.md'))).toBe(true);
         expect(existsSync(join(cacheRoot, 'dist', 'hooks', 'skill-bridge.cjs'))).toBe(true);
         expect(existsSync(join(cacheRoot, 'bridge', 'cli.cjs'))).toBe(true);
+        expect(existsSync(join(cacheRoot, 'bridge', 'claude-md-coordinator.cjs'))).toBe(true);
     });
-    it('rejects package sources missing runtime-critical dist hook or bridge files', async () => {
+    it('rejects package sources missing runtime-critical dist hook or bridge payload files', async () => {
         const configDir = process.env.CLAUDE_CONFIG_DIR;
-        const cacheRoot = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.14.4');
+        const cacheRoot = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.14.4');
         const incompleteSourceRoot = join(tempRoot, 'incomplete-marketplace-source');
         writePayloadTree(incompleteSourceRoot, '4.14.4');
         rmSync(join(incompleteSourceRoot, 'dist', 'hooks'), { recursive: true, force: true });
@@ -273,7 +314,7 @@ describe('syncInstalledPluginPayload', () => {
         writeFileSync(join(configDir, 'plugins', 'installed_plugins.json'), JSON.stringify({
             version: 2,
             plugins: {
-                'oh-my-claudecode@omc': [{ installPath: cacheRoot, version: '4.14.4' }],
+                'oh-my-claudecode@omcx': [{ installPath: cacheRoot, version: '4.14.4' }],
             },
         }, null, 2));
         writeFileSync(join(configDir, 'plugins', 'known_marketplaces.json'), JSON.stringify({
@@ -288,6 +329,7 @@ describe('syncInstalledPluginPayload', () => {
         expect(result.errors).toEqual(expect.arrayContaining([
             `${incompleteSourceRoot}: Missing required plugin payload file: dist/hooks/skill-bridge.cjs`,
             `${incompleteSourceRoot}: Missing required plugin payload file: bridge/cli.cjs`,
+            `${incompleteSourceRoot}: Missing required plugin payload file: bridge/claude-md-coordinator.cjs`,
         ]));
         expect(existsSync(join(cacheRoot, 'package.json'))).toBe(false);
     });
@@ -304,7 +346,7 @@ describe('syncInstalledPluginPayload', () => {
         writeFileSync(join(configDir, 'plugins', 'installed_plugins.json'), JSON.stringify({
             version: 2,
             plugins: {
-                'oh-my-claudecode@omc': [{ installPath: escapedInstallPath, version: '4.12.0' }],
+                'oh-my-claudecode@omcx': [{ installPath: escapedInstallPath, version: '4.12.0' }],
             },
         }, null, 2));
         writeFileSync(join(configDir, 'plugins', 'known_marketplaces.json'), JSON.stringify({

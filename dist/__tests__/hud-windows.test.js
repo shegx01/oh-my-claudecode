@@ -102,22 +102,22 @@ describe('HUD Windows Compatibility', () => {
         });
     });
     describe('safeMode override (#346)', () => {
-        it('safeMode logic: explicit false overrides platform detection', () => {
-            // Simulate the logic from src/hud/index.ts
-            const resolveSafeMode = (safeMode, isWin32) => safeMode !== false && (safeMode || isWin32);
-            // explicit false: disabled even on Windows
-            expect(resolveSafeMode(false, true)).toBe(false);
+        it('safeMode logic: Windows always ASCII, safeMode:true always ASCII', () => {
+            // Simulate the logic from src/hud/index.ts. The glyph-based design ships
+            // real glyphs only on macOS/Linux with safeMode:false; the ASCII fallback
+            // fires on explicit safeMode:true OR Windows (which always degrades).
+            const resolveSafeMode = (safeMode, isWin32) => safeMode === true || isWin32;
+            // explicit false: glyphs on Unix, but Windows still degrades to ASCII
+            expect(resolveSafeMode(false, true)).toBe(true);
             expect(resolveSafeMode(false, false)).toBe(false);
-            // explicit true: always enabled
+            // explicit true: always ASCII
             expect(resolveSafeMode(true, false)).toBe(true);
             expect(resolveSafeMode(true, true)).toBe(true);
-            // default true on Windows: enabled
-            expect(resolveSafeMode(true, true)).toBe(true);
         });
-        it('hud index.ts should use explicit-false override for safeMode', () => {
+        it('hud index.ts should degrade to ASCII on safeMode:true or Windows', () => {
             const indexPath = join(packageRoot, 'src', 'hud', 'index.ts');
             const content = readFileSync(indexPath, 'utf-8');
-            expect(content).toContain('config.elements.safeMode !== false');
+            expect(content).toContain('config.elements.safeMode === true');
         });
     });
     describe('Cross-Platform Plugin Cache Path (#670)', () => {
@@ -125,12 +125,12 @@ describe('HUD Windows Compatibility', () => {
             const cachePath = getPluginCacheBase();
             // Should contain the expected path segments regardless of separator
             const normalized = cachePath.replace(/\\/g, '/');
-            expect(normalized).toContain('plugins/cache/omc/oh-my-claudecode');
+            expect(normalized).toContain('plugins/cache/omcx/oh-my-claudecode');
         });
         it('getPluginCacheBase should use platform-native separators', () => {
             const cachePath = getPluginCacheBase();
             // On Windows: backslashes, on Unix: forward slashes
-            expect(cachePath).toContain(`plugins${sep}cache${sep}omc${sep}oh-my-claudecode`);
+            expect(cachePath).toContain(`plugins${sep}cache${sep}omcx${sep}oh-my-claudecode`);
         });
         it('getPluginCacheBase should be under claude config dir', () => {
             const cachePath = getPluginCacheBase();
@@ -159,7 +159,7 @@ describe('HUD Windows Compatibility', () => {
             // Should use node -e for cross-platform compatibility
             expect(content).toContain("node -e");
             // Should use path.join for constructing paths
-            expect(content).toContain("p.join(d,'plugins','cache','omc','oh-my-claudecode')");
+            expect(content).toContain("p.join(d,'plugins','cache','omcx','oh-my-claudecode')");
             expect(content).not.toContain('ls ~/.claude/CLAUDE-*.md');
             expect(content).toContain("find \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\" -maxdepth 1 -type f -name 'CLAUDE-*.md' -print 2>/dev/null");
         });

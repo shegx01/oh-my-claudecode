@@ -58,7 +58,7 @@ export declare function getGlobalOmcStateCandidates(...segments: string[]): stri
  * Get the plugin cache base directory for oh-my-claudecode.
  * This is the directory containing version subdirectories.
  *
- * Structure: <configDir>/plugins/cache/omc/oh-my-claudecode/
+ * Structure: <configDir>/plugins/cache/omcx/oh-my-claudecode/
  */
 export declare function getPluginCacheBase(): string;
 /**

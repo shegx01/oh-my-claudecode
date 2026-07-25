@@ -35,7 +35,7 @@ describe('hooks.json command escaping', () => {
         }
     });
     it('keeps Windows-style plugin roots with spaces intact when bash expands the command', () => {
-        const pluginRoot = '/c/Users/First Last/.claude/plugins/cache/omc/oh-my-claudecode/4.7.10';
+        const pluginRoot = '/c/Users/First Last/.claude/plugins/cache/omcx/oh-my-claudecode/4.7.10';
         for (const { command } of getHookCommands()) {
             const argv = expandHookCommandArgv(command, pluginRoot);
             expect(argv[0]).toBe('node');
@@ -44,7 +44,7 @@ describe('hooks.json command escaping', () => {
             expect(argv[1]).toContain('First Last');
             expect(argv[2]).toContain('First Last');
             expect(argv).not.toContain('/c/Users/First');
-            expect(argv).not.toContain('Last/.claude/plugins/cache/omc/oh-my-claudecode/4.7.10/scripts/run.cjs');
+            expect(argv).not.toContain('Last/.claude/plugins/cache/omcx/oh-my-claudecode/4.7.10/scripts/run.cjs');
         }
     });
     it('find-node bootstrap can execute when node is absent from PATH', () => {

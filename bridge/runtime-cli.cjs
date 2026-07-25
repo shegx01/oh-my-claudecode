@@ -3611,6 +3611,14 @@ var import_path4 = require("path");
 var import_fs2 = require("fs");
 var import_os2 = require("os");
 init_config_dir();
+
+// src/lib/paths.ts
+var OMC_PLUGIN_MARKETPLACE_SLUG = "omcx";
+var OMC_PLUGIN_PACKAGE_NAME = "oh-my-claudecode";
+var OMC_PLUGIN_CACHE_REL = `plugins/cache/${OMC_PLUGIN_MARKETPLACE_SLUG}/${OMC_PLUGIN_PACKAGE_NAME}`;
+var OMC_PLUGIN_MARKETPLACE_REL = `plugins/marketplaces/${OMC_PLUGIN_MARKETPLACE_SLUG}`;
+
+// src/utils/paths.ts
 function getConfigDir() {
   if (process.platform === "win32") {
     return process.env.APPDATA || (0, import_path4.join)((0, import_os2.homedir)(), "AppData", "Roaming");
@@ -7580,7 +7588,7 @@ var DEFAULT_FACTCHECK_POLICY = {
   enabled: false,
   mode: "quick",
   strict_project_patterns: [],
-  forbidden_path_prefixes: ["${CLAUDE_CONFIG_DIR}/plugins/cache/omc/"],
+  forbidden_path_prefixes: ["${CLAUDE_CONFIG_DIR}/plugins/cache/omcx/"],
   forbidden_path_substrings: ["/.omc/", ".omc-config.json"],
   readonly_command_prefixes: [
     "ls ",

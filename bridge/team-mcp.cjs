@@ -19869,6 +19869,14 @@ function clearScopedTeamState(job) {
 var import_path10 = require("path");
 var import_fs9 = require("fs");
 var import_os3 = require("os");
+
+// src/lib/paths.ts
+var OMC_PLUGIN_MARKETPLACE_SLUG = "omcx";
+var OMC_PLUGIN_PACKAGE_NAME = "oh-my-claudecode";
+var OMC_PLUGIN_CACHE_REL = `plugins/cache/${OMC_PLUGIN_MARKETPLACE_SLUG}/${OMC_PLUGIN_PACKAGE_NAME}`;
+var OMC_PLUGIN_MARKETPLACE_REL = `plugins/marketplaces/${OMC_PLUGIN_MARKETPLACE_SLUG}`;
+
+// src/utils/paths.ts
 function getStateDir() {
   if (process.platform === "win32") {
     return process.env.LOCALAPPDATA || (0, import_path10.join)((0, import_os3.homedir)(), "AppData", "Local");
