@@ -66,7 +66,7 @@ Reuse existing runtime artifacts when available rather than duplicating them unn
 3. On every iteration:
    - run exactly one experiment/change cycle
    - run the evaluator
-   - persist machine-readable evaluation JSON (including the `qualityGates` results)
+   - persist machine-readable evaluation JSON (including the quality-gate results, stored on the record as `quality_gates`)
    - under `quality_gated`: keep the iteration only if `pass` is true, all quality gates hold, and `score` improves on the last kept score; if any gate fails the runtime discards the candidate and resets to the last kept commit before continuing
    - append a human-readable markdown decision log entry recording the choice made and whether it conformed to the mission's Design Decision Ledger
    - continue even when evaluation does not pass

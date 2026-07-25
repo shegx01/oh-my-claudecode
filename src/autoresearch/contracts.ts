@@ -217,6 +217,29 @@ export function parseEvaluatorResult(raw: string): AutoresearchEvaluatorResult {
   };
 }
 
+// Suspiciously-generic aggregate gate names. The autoresearch skill forbids a
+// single "did everything pass" aggregate gate in favor of named, granular gates.
+const SUSPICIOUS_AGGREGATE_GATE_NAMES: ReadonlySet<string> = new Set([
+  'ledger_conformance',
+  'conformance',
+  'all',
+  'ok',
+  'pass',
+  'gates',
+]);
+
+/**
+ * Return a list of human-readable warnings for suspiciously-generic aggregate
+ * quality-gate names (the anti-pattern the autoresearch skill forbids: one
+ * catch-all gate instead of named, granular gates). Non-fatal — callers should
+ * surface these as warnings, not errors.
+ */
+export function validateQualityGateNames(gates: AutoresearchQualityGates): string[] {
+  return Object.keys(gates)
+    .filter((name) => SUSPICIOUS_AGGREGATE_GATE_NAMES.has(name.trim().toLowerCase()))
+    .map((name) => `Quality gate "${name}" looks like a generic aggregate gate; prefer named, granular gates instead of one catch-all.`);
+}
+
 export function failedQualityGates(gates: AutoresearchQualityGates | undefined): string[] {
   if (!gates) return [];
   return Object.entries(gates)

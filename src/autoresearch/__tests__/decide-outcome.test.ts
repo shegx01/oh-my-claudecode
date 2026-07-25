@@ -140,6 +140,28 @@ describe('decideAutoresearchOutcome (quality_gated)', () => {
     expect(decision.decisionReason).toMatch(/bootstrap/i);
   });
 
+  it('fails closed and discards a passing candidate when no quality gates are declared', () => {
+    const manifest: ManifestSlice = { keep_policy: 'quality_gated', last_kept_score: null };
+    const evaluation = makeEvaluation({ score: 0.40 });
+    delete evaluation.quality_gates;
+    const decision = decideAutoresearchOutcome(manifest, makeCandidate(), evaluation);
+    expect(decision.decision).toBe('discard');
+    expect(decision.keep).toBe(false);
+    expect(decision.decisionReason).toMatch(/at least one declared quality gate/i);
+  });
+
+  it('fails closed and discards a passing candidate when quality gates are an empty object', () => {
+    const manifest: ManifestSlice = { keep_policy: 'quality_gated', last_kept_score: 0.36 };
+    const decision = decideAutoresearchOutcome(
+      manifest,
+      makeCandidate(),
+      makeEvaluation({ score: 0.40, quality_gates: {} }),
+    );
+    expect(decision.decision).toBe('discard');
+    expect(decision.keep).toBe(false);
+    expect(decision.decisionReason).toMatch(/at least one declared quality gate/i);
+  });
+
   it('marks a gated pass with satisfied gates but no numeric score as ambiguous', () => {
     const manifest: ManifestSlice = { keep_policy: 'quality_gated', last_kept_score: null };
     const evaluation = makeEvaluation({ quality_gates: { architecture: true, behavior: true } });

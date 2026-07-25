@@ -110,4 +110,65 @@ describe('countTrailingIterationsWithoutBestStateImprovement', () => {
       await rm(ledgerFile.replace(/\/ledger\.json$/, ''), { recursive: true, force: true });
     }
   });
+
+  it('counts ambiguous and error decisions as evaluated non-improving iterations', async () => {
+    const ledgerFile = await writeLedger([
+      { iteration: 1, kind: 'iteration', decision: 'keep' },
+      { iteration: 2, kind: 'iteration', decision: 'discard' },
+      { iteration: 3, kind: 'iteration', decision: 'ambiguous' },
+      { iteration: 4, kind: 'iteration', decision: 'error' },
+    ]);
+    try {
+      expect(await countTrailingIterationsWithoutBestStateImprovement(ledgerFile)).toBe(3);
+    } finally {
+      await rm(ledgerFile.replace(/\/ledger\.json$/, ''), { recursive: true, force: true });
+    }
+  });
+
+  it('stops the plateau count at a trailing noop (non-evaluation boundary)', async () => {
+    const ledgerFile = await writeLedger([
+      { iteration: 1, kind: 'iteration', decision: 'discard' },
+      { iteration: 2, kind: 'iteration', decision: 'discard' },
+      { iteration: 3, kind: 'iteration', decision: 'noop' },
+    ]);
+    try {
+      // A trailing noop is a non-evaluation and halts the walk immediately.
+      expect(await countTrailingIterationsWithoutBestStateImprovement(ledgerFile)).toBe(0);
+    } finally {
+      await rm(ledgerFile.replace(/\/ledger\.json$/, ''), { recursive: true, force: true });
+    }
+  });
+
+  it('stops the plateau count at an intervening noop between discards', async () => {
+    const ledgerFile = await writeLedger([
+      { iteration: 1, kind: 'iteration', decision: 'discard' },
+      { iteration: 2, kind: 'iteration', decision: 'noop' },
+      { iteration: 3, kind: 'iteration', decision: 'discard' },
+      { iteration: 4, kind: 'iteration', decision: 'discard' },
+    ]);
+    try {
+      // Two trailing discards, then the noop non-evaluation halts the walk.
+      expect(await countTrailingIterationsWithoutBestStateImprovement(ledgerFile)).toBe(2);
+    } finally {
+      await rm(ledgerFile.replace(/\/ledger\.json$/, ''), { recursive: true, force: true });
+    }
+  });
+
+  it('stops the plateau count at a trailing interrupted or abort non-evaluation', async () => {
+    const interruptedLedger = await writeLedger([
+      { iteration: 1, kind: 'iteration', decision: 'discard' },
+      { iteration: 2, kind: 'iteration', decision: 'interrupted' },
+    ]);
+    const abortLedger = await writeLedger([
+      { iteration: 1, kind: 'iteration', decision: 'discard' },
+      { iteration: 2, kind: 'iteration', decision: 'abort' },
+    ]);
+    try {
+      expect(await countTrailingIterationsWithoutBestStateImprovement(interruptedLedger)).toBe(0);
+      expect(await countTrailingIterationsWithoutBestStateImprovement(abortLedger)).toBe(0);
+    } finally {
+      await rm(interruptedLedger.replace(/\/ledger\.json$/, ''), { recursive: true, force: true });
+      await rm(abortLedger.replace(/\/ledger\.json$/, ''), { recursive: true, force: true });
+    }
+  });
 });
