@@ -251,8 +251,8 @@ ${'- oversized startup guidance\n'.repeat(700)}
 
   it('does not show update notice when stale CLAUDE_PLUGIN_ROOT is older than plugin cache', () => {
     const claudeDir = join(fakeHome, '.claude');
-    const stalePluginRoot = join(claudeDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.14.4');
-    const latestPluginRoot = join(claudeDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.14.5');
+    const stalePluginRoot = join(claudeDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.14.4');
+    const latestPluginRoot = join(claudeDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.14.5');
     mkdirSync(join(claudeDir, '.omc'), { recursive: true });
     mkdirSync(join(claudeDir, 'hud'), { recursive: true });
     mkdirSync(stalePluginRoot, { recursive: true });
@@ -304,8 +304,8 @@ ${'- oversized startup guidance\n'.repeat(700)}
 
   it('suppresses plugin update notices when npm latest is newer than the marketplace channel', () => {
     const claudeDir = join(fakeHome, '.claude');
-    const pluginRoot = join(claudeDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.15.4');
-    const marketplaceRoot = join(claudeDir, 'plugins', 'marketplaces', 'omc');
+    const pluginRoot = join(claudeDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.15.4');
+    const marketplaceRoot = join(claudeDir, 'plugins', 'marketplaces', 'omcx');
     mkdirSync(join(claudeDir, '.omc'), { recursive: true });
     mkdirSync(join(claudeDir, 'hud'), { recursive: true });
     mkdirSync(join(pluginRoot), { recursive: true });
@@ -356,8 +356,8 @@ ${'- oversized startup guidance\n'.repeat(700)}
 
   it('does not fall back to npm notices when marketplace metadata is unavailable', () => {
     const claudeDir = join(fakeHome, '.claude');
-    const pluginRoot = join(claudeDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.15.4');
-    const marketplaceRoot = join(claudeDir, 'plugins', 'marketplaces', 'omc');
+    const pluginRoot = join(claudeDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.15.4');
+    const marketplaceRoot = join(claudeDir, 'plugins', 'marketplaces', 'omcx');
     mkdirSync(join(claudeDir, '.omc'), { recursive: true });
     mkdirSync(join(claudeDir, 'hud'), { recursive: true });
     mkdirSync(pluginRoot, { recursive: true });
@@ -416,8 +416,8 @@ ${'- oversized startup guidance\n'.repeat(700)}
 
   it('treats a stable marketplace version as newer than the matching prerelease', () => {
     const claudeDir = join(fakeHome, '.claude');
-    const pluginRoot = join(claudeDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.16.0-beta.1');
-    const marketplaceRoot = join(claudeDir, 'plugins', 'marketplaces', 'omc');
+    const pluginRoot = join(claudeDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.16.0-beta.1');
+    const marketplaceRoot = join(claudeDir, 'plugins', 'marketplaces', 'omcx');
     mkdirSync(join(claudeDir, 'hud'), { recursive: true });
     mkdirSync(pluginRoot, { recursive: true });
     mkdirSync(join(marketplaceRoot, '.claude-plugin'), { recursive: true });
@@ -454,8 +454,8 @@ ${'- oversized startup guidance\n'.repeat(700)}
 
   it('uses the marketplace clone version for plugin update notices instead of npm latest', () => {
     const claudeDir = join(fakeHome, '.claude');
-    const pluginRoot = join(claudeDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.15.3');
-    const marketplaceRoot = join(claudeDir, 'plugins', 'marketplaces', 'omc');
+    const pluginRoot = join(claudeDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.15.3');
+    const marketplaceRoot = join(claudeDir, 'plugins', 'marketplaces', 'omcx');
     mkdirSync(join(claudeDir, '.omc'), { recursive: true });
     mkdirSync(join(claudeDir, 'hud'), { recursive: true });
     mkdirSync(join(pluginRoot), { recursive: true });
@@ -507,8 +507,8 @@ ${'- oversized startup guidance\n'.repeat(700)}
 
   it('does not emit npm-channel drift guidance when managed marketplace plugin is current', () => {
     const claudeDir = join(fakeHome, '.claude');
-    const pluginRoot = join(claudeDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.15.4');
-    const marketplaceRoot = join(claudeDir, 'plugins', 'marketplaces', 'omc');
+    const pluginRoot = join(claudeDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.15.4');
+    const marketplaceRoot = join(claudeDir, 'plugins', 'marketplaces', 'omcx');
     mkdirSync(join(claudeDir, '.omc'), { recursive: true });
     mkdirSync(join(claudeDir, 'hud'), { recursive: true });
     mkdirSync(pluginRoot, { recursive: true });
