@@ -120,7 +120,7 @@ export declare function assertModeStartAllowed(mode: ExecutionMode, projectRoot:
 export declare function countTrailingAutoresearchNoops(ledgerFile: string): Promise<number>;
 export declare const AUTORESEARCH_PLATEAU_K = 3;
 export declare function countTrailingIterationsWithoutBestStateImprovement(ledgerFile: string): Promise<number>;
-export declare function runAutoresearchEvaluator(contract: AutoresearchMissionContract, worktreePath: string, ledgerFile?: string, latestEvaluatorFile?: string): Promise<AutoresearchEvaluationRecord>;
+export declare function runAutoresearchEvaluator(contract: AutoresearchMissionContract, worktreePath: string): Promise<AutoresearchEvaluationRecord>;
 export declare function decideAutoresearchOutcome(manifest: Pick<AutoresearchRunManifest, 'keep_policy' | 'last_kept_score'>, candidate: AutoresearchCandidateArtifact, evaluation: AutoresearchEvaluationRecord | null): AutoresearchDecision;
 export declare function buildAutoresearchInstructions(contract: AutoresearchMissionContract, context: {
     runId: string;

@@ -4,7 +4,7 @@ import { realpathSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { failedQualityGates, loadAutoresearchMissionContract, parseEvaluatorResult, parseSandboxContract, slugifyMissionName, } from '../contracts.js';
+import { failedQualityGates, loadAutoresearchMissionContract, parseEvaluatorResult, parseSandboxContract, slugifyMissionName, validateQualityGateNames, } from '../contracts.js';
 async function initRepo() {
     const cwd = await mkdtemp(join(tmpdir(), 'omc-autoresearch-contracts-'));
     execFileSync('git', ['init'], { cwd, stdio: 'ignore' });
@@ -113,6 +113,15 @@ Stay in bounds.
     it('treats an empty qualityGates object as no gates declared (pass)', () => {
         expect(parseEvaluatorResult('{"pass":true,"qualityGates":{}}')).toEqual({ pass: true, qualityGates: {} });
         expect(failedQualityGates({})).toEqual([]);
+    });
+    it('validateQualityGateNames flags suspiciously-generic aggregate gate names', () => {
+        const warnings = validateQualityGateNames({ ledger_conformance: true });
+        expect(warnings).toHaveLength(1);
+        expect(warnings[0]).toMatch(/ledger_conformance/);
+        expect(warnings[0]).toMatch(/aggregate gate/i);
+    });
+    it('validateQualityGateNames passes named, granular gates', () => {
+        expect(validateQualityGateNames({ no_switch_dispatch: true })).toEqual([]);
     });
     it('loads mission contract from in-repo mission directory', async () => {
         const repo = realpathSync(await initRepo());

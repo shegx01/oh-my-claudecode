@@ -29,6 +29,13 @@ export interface AutoresearchMissionContract {
 export declare function slugifyMissionName(value: string): string;
 export declare function parseSandboxContract(content: string): ParsedSandboxContract;
 export declare function parseEvaluatorResult(raw: string): AutoresearchEvaluatorResult;
+/**
+ * Return a list of human-readable warnings for suspiciously-generic aggregate
+ * quality-gate names (the anti-pattern the autoresearch skill forbids: one
+ * catch-all gate instead of named, granular gates). Non-fatal — callers should
+ * surface these as warnings, not errors.
+ */
+export declare function validateQualityGateNames(gates: AutoresearchQualityGates): string[];
 export declare function failedQualityGates(gates: AutoresearchQualityGates | undefined): string[];
 export declare function loadAutoresearchMissionContract(missionDirArg: string): Promise<AutoresearchMissionContract>;
 //# sourceMappingURL=contracts.d.ts.map

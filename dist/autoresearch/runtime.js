@@ -5,7 +5,7 @@ import { dirname, join, resolve } from 'path';
 import { getOmcRoot } from '../lib/worktree-paths.js';
 import { readModeState, writeModeState, } from '../lib/mode-state-io.js';
 import { isModeActiveInAnySession } from '../hooks/mode-registry/index.js';
-import { failedQualityGates, parseEvaluatorResult, } from './contracts.js';
+import { failedQualityGates, parseEvaluatorResult, validateQualityGateNames, } from './contracts.js';
 const AUTORESEARCH_RESULTS_HEADER = 'iteration\tcommit\tpass\tscore\tstatus\tdescription\n';
 const AUTORESEARCH_WORKTREE_EXCLUDES = ['results.tsv', 'run.log', 'node_modules', '.omc/'];
 // Exclusive modes that cannot run concurrently with autoresearch
@@ -341,6 +341,13 @@ export async function countTrailingAutoresearchNoops(ledgerFile) {
     return count;
 }
 export const AUTORESEARCH_PLATEAU_K = 3;
+// Only these decisions represent an evaluated iteration that failed to improve
+// best state. noop/interrupted/abort are non-evaluations and act as boundaries.
+const AUTORESEARCH_PLATEAU_EVALUATED_DECISIONS = new Set([
+    'discard',
+    'ambiguous',
+    'error',
+]);
 export async function countTrailingIterationsWithoutBestStateImprovement(ledgerFile) {
     const entries = await readAutoresearchLedgerEntries(ledgerFile);
     let count = 0;
@@ -351,6 +358,10 @@ export async function countTrailingIterationsWithoutBestStateImprovement(ledgerF
             break;
         // A keep is the only decision that improves best state; stop resetting there.
         if (entry.decision === 'keep')
+            break;
+        // Only evaluated, non-improving decisions count toward a plateau. noop /
+        // interrupted / abort are non-evaluations and act as a boundary.
+        if (!AUTORESEARCH_PLATEAU_EVALUATED_DECISIONS.has(entry.decision))
             break;
         count += 1;
     }
@@ -380,7 +391,7 @@ async function buildAutoresearchInstructionContext(manifest) {
         recentLedgerSummary: formatAutoresearchInstructionSummary(entries),
     };
 }
-export async function runAutoresearchEvaluator(contract, worktreePath, ledgerFile, latestEvaluatorFile) {
+export async function runAutoresearchEvaluator(contract, worktreePath) {
     const ran_at = nowIso();
     const result = spawnSync(contract.sandbox.evaluator.command, {
         cwd: worktreePath,
@@ -404,6 +415,11 @@ export async function runAutoresearchEvaluator(contract, worktreePath, ledgerFil
     else {
         try {
             const parsed = parseEvaluatorResult(stdout);
+            if (parsed.qualityGates !== undefined) {
+                for (const warning of validateQualityGateNames(parsed.qualityGates)) {
+                    console.warn(`[autoresearch] ${warning}`);
+                }
+            }
             record = {
                 command: contract.sandbox.evaluator.command,
                 ran_at,
@@ -427,26 +443,6 @@ export async function runAutoresearchEvaluator(contract, worktreePath, ledgerFil
                 parse_error: error instanceof Error ? error.message : String(error),
             };
         }
-    }
-    if (latestEvaluatorFile) {
-        await writeJsonFile(latestEvaluatorFile, record);
-    }
-    if (ledgerFile) {
-        await appendAutoresearchLedgerEntry(ledgerFile, {
-            iteration: -1,
-            kind: 'iteration',
-            decision: record.status === 'error' ? 'error' : record.status === 'pass' ? 'keep' : 'discard',
-            decision_reason: 'raw evaluator record',
-            candidate_status: 'candidate',
-            base_commit: readGitShortHead(worktreePath),
-            candidate_commit: null,
-            kept_commit: readGitShortHead(worktreePath),
-            keep_policy: contract.sandbox.evaluator.keep_policy ?? 'score_improvement',
-            evaluator: record,
-            created_at: nowIso(),
-            notes: ['raw evaluator invocation'],
-            description: 'raw evaluator record',
-        });
     }
     return record;
 }
@@ -500,6 +496,15 @@ export function decideAutoresearchOutcome(manifest, candidate, evaluation) {
         };
     }
     if (manifest.keep_policy === 'quality_gated') {
+        if (!evaluation.quality_gates || Object.keys(evaluation.quality_gates).length === 0) {
+            return {
+                decision: 'discard',
+                decisionReason: 'quality_gated requires at least one declared quality gate',
+                keep: false,
+                evaluator: evaluation,
+                notes: ['candidate discarded because quality_gated policy saw no declared quality gates (fail-closed)'],
+            };
+        }
         const gateFailures = failedQualityGates(evaluation.quality_gates);
         if (gateFailures.length > 0) {
             return {
