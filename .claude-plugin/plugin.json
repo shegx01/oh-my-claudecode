@@ -34,6 +34,7 @@
     "./skills/local-build-reminder/",
     "./skills/merge-readiness/",
     "./skills/mcp-setup/",
+    "./skills/multi-axis-reviewer/",
     "./skills/omc-doctor/",
     "./skills/omc-reference/",
     "./skills/omc-setup/",
