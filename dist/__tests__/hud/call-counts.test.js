@@ -67,6 +67,17 @@ describe('renderCallCounts', () => {
             expect(result).toContain('⚡50');
         });
     });
+    describe('icon overrides (stacked gear)', () => {
+        it('applies a tool icon override in the emoji path', () => {
+            const result = renderCallCounts(5, 2, 1, 'emoji', undefined, { tool: '⚙' });
+            expect(result).toBe('⚙5 🤖2 ⚡1');
+        });
+        it('never applies overrides in the ASCII path (no glyph leak)', () => {
+            const result = renderCallCounts(5, 2, 1, 'ascii', undefined, { tool: '⚙' });
+            expect(result).toBe('T:5 A:2 S:1');
+            expect(result).not.toContain('⚙');
+        });
+    });
 });
 describe('showCallCounts config option', () => {
     it('DEFAULT_HUD_CONFIG uses auto call-count icon selection', () => {

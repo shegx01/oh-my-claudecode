@@ -18168,6 +18168,12 @@ function getClaudeConfigDir() {
   return stripTrailingSep((0, import_path.normalize)(configured));
 }
 
+// src/lib/paths.ts
+var OMC_PLUGIN_MARKETPLACE_SLUG = "omcx";
+var OMC_PLUGIN_PACKAGE_NAME = "oh-my-claudecode";
+var OMC_PLUGIN_CACHE_REL = `plugins/cache/${OMC_PLUGIN_MARKETPLACE_SLUG}/${OMC_PLUGIN_PACKAGE_NAME}`;
+var OMC_PLUGIN_MARKETPLACE_REL = `plugins/marketplaces/${OMC_PLUGIN_MARKETPLACE_SLUG}`;
+
 // src/utils/paths.ts
 function getConfigDir() {
   if (process.platform === "win32") {

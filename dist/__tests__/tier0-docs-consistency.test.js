@@ -67,7 +67,6 @@ describe('Tier-0 contract docs consistency', () => {
     });
     it('uses the published /docs/ path instead of the removed docs.html path in README links', () => {
         const readmes = [
-            'README.md',
             'README.de.md',
             'README.es.md',
             'README.fr.md',

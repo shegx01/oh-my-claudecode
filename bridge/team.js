@@ -5446,6 +5446,18 @@ var init_omc_cli_rendering = __esm({
   }
 });
 
+// src/lib/paths.ts
+var OMC_PLUGIN_MARKETPLACE_SLUG, OMC_PLUGIN_PACKAGE_NAME, OMC_PLUGIN_CACHE_REL, OMC_PLUGIN_MARKETPLACE_REL;
+var init_paths = __esm({
+  "src/lib/paths.ts"() {
+    "use strict";
+    OMC_PLUGIN_MARKETPLACE_SLUG = "omcx";
+    OMC_PLUGIN_PACKAGE_NAME = "oh-my-claudecode";
+    OMC_PLUGIN_CACHE_REL = `plugins/cache/${OMC_PLUGIN_MARKETPLACE_SLUG}/${OMC_PLUGIN_PACKAGE_NAME}`;
+    OMC_PLUGIN_MARKETPLACE_REL = `plugins/marketplaces/${OMC_PLUGIN_MARKETPLACE_SLUG}`;
+  }
+});
+
 // src/utils/paths.ts
 import { join as join13 } from "path";
 import { existsSync as existsSync10, readFileSync as readFileSync5, readdirSync as readdirSync4, statSync, unlinkSync as unlinkSync4, rmSync, symlinkSync } from "fs";
@@ -5488,10 +5500,11 @@ function getGlobalOmcStatePath(...segments) {
   return join13(getGlobalOmcStateRoot(), ...segments);
 }
 var STALE_THRESHOLD_MS;
-var init_paths = __esm({
+var init_paths2 = __esm({
   "src/utils/paths.ts"() {
     "use strict";
     init_config_dir();
+    init_paths();
     STALE_THRESHOLD_MS = 24 * 60 * 60 * 1e3;
   }
 });
@@ -6603,7 +6616,7 @@ var init_loader = __esm({
   "src/config/loader.ts"() {
     "use strict";
     init_types();
-    init_paths();
+    init_paths2();
     init_jsonc();
     init_models();
     init_types2();
@@ -7352,7 +7365,7 @@ var init_security_config = __esm({
   "src/lib/security-config.ts"() {
     "use strict";
     init_jsonc();
-    init_paths();
+    init_paths2();
     DEFAULTS = {
       restrictToolPaths: false,
       pythonSandbox: false,
@@ -15603,7 +15616,7 @@ init_tmux_session();
 init_team_name();
 init_monitor();
 init_platform();
-init_paths();
+init_paths2();
 
 // src/planning/artifacts.ts
 init_worktree_paths();

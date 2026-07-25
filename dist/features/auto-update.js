@@ -16,7 +16,7 @@ import { install as installOmc, HOOKS_DIR, isProjectScopedPlugin, isRunningAsPlu
 import { getClaudeConfigDir } from '../utils/config-dir.js';
 import { purgeStalePluginCacheVersions } from '../utils/paths.js';
 import { isAutoUpdateDisabled } from '../lib/security-config.js';
-import { OMC_CONFIG_FILE_REL } from '../lib/paths.js';
+import { OMC_CONFIG_FILE_REL, OMC_PLUGIN_MARKETPLACE_SLUG, OMC_PLUGIN_PACKAGE_NAME } from '../lib/paths.js';
 /** GitHub repository information */
 export const REPO_OWNER = 'Yeachan-Heo';
 export const REPO_NAME = 'oh-my-claudecode';
@@ -177,12 +177,12 @@ function restoreGlobalClaudeCodeIfNeeded(beforeUpdate, verbose = false) {
 }
 /**
  * Best-effort sync of the Claude Code marketplace clone.
- * The marketplace clone at ~/.claude/plugins/marketplaces/omc/ is used by
+ * The marketplace clone at ~/.claude/plugins/marketplaces/omcx/ is used by
  * Claude Code to populate the plugin cache. If it's stale, `/plugin install`
  * and cache rebuilds reinstall old versions. (See #506)
  */
 function syncMarketplaceClone(verbose = false) {
-    const marketplacePath = join(getClaudeConfigDir(), 'plugins', 'marketplaces', 'omc');
+    const marketplacePath = join(getClaudeConfigDir(), 'plugins', 'marketplaces', OMC_PLUGIN_MARKETPLACE_SLUG);
     if (!existsSync(marketplacePath)) {
         return { ok: true, message: 'Marketplace clone not found; skipping' };
     }
@@ -313,7 +313,7 @@ function syncInstalledPluginRegistryVersion(newVersion, fallbackInstallPath) {
         let updated = false;
         for (const [pluginId, entriesValue] of Object.entries(plugins)) {
             const normalizedPluginId = pluginId.toLowerCase();
-            const isOmcPlugin = normalizedPluginId === 'oh-my-claudecode@omc'
+            const isOmcPlugin = normalizedPluginId === `oh-my-claudecode@${OMC_PLUGIN_MARKETPLACE_SLUG}`
                 || normalizedPluginId === 'oh-my-claudecode';
             if (!isOmcPlugin || !Array.isArray(entriesValue)) {
                 continue;
@@ -364,7 +364,7 @@ export function shouldBlockStandaloneUpdateInCurrentSession() {
     return false;
 }
 export function syncPluginCache(verbose = false) {
-    const pluginCacheRoot = join(getClaudeConfigDir(), 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    const pluginCacheRoot = join(getClaudeConfigDir(), 'plugins', 'cache', OMC_PLUGIN_MARKETPLACE_SLUG, OMC_PLUGIN_PACKAGE_NAME);
     if (!existsSync(pluginCacheRoot)) {
         return { synced: false, skipped: true, errors: [] };
     }

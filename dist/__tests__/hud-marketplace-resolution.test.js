@@ -81,7 +81,7 @@ describe('HUD marketplace resolution', () => {
         const fakeHome = join(configDir, 'home');
         mkdirSync(fakeHome, { recursive: true });
         const sentinelPath = join(configDir, 'marketplace-loaded.txt');
-        const marketplaceRoot = join(configDir, 'plugins', 'marketplaces', 'omc');
+        const marketplaceRoot = join(configDir, 'plugins', 'marketplaces', 'omcx');
         const marketplaceHudDir = join(marketplaceRoot, 'dist', 'hud');
         mkdirSync(marketplaceHudDir, { recursive: true });
         writeFileSync(join(marketplaceRoot, 'package.json'), '{"type":"module"}\n');

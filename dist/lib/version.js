@@ -101,7 +101,7 @@ export function isRuntimePackageLocal() {
             // realpath failure — fall through
         }
         // Signal 3b: check ancestors for symlink/junction (covers cases where
-        // a parent dir like ~/.claude/plugins/marketplaces/omc is the junction).
+        // a parent dir like ~/.claude/plugins/marketplaces/omcx is the junction).
         let cursor = pkgRoot;
         for (let i = 0; i < 6; i++) {
             const parent = dirname(cursor);

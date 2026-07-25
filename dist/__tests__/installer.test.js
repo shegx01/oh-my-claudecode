@@ -458,7 +458,7 @@ describe('Installer Constants', () => {
         });
         it('should return false for global plugin installation', () => {
             // Global plugins are under ~/.claude/plugins/
-            process.env.CLAUDE_PLUGIN_ROOT = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '3.9.0');
+            process.env.CLAUDE_PLUGIN_ROOT = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '3.9.0');
             expect(isProjectScopedPlugin()).toBe(false);
         });
         it('should return true for project-scoped plugin installation', () => {
@@ -477,7 +477,7 @@ describe('Installer Constants', () => {
             expect(isProjectScopedPlugin()).toBe(true);
         });
         it('should handle trailing slashes in paths', () => {
-            process.env.CLAUDE_PLUGIN_ROOT = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omc') + '/';
+            process.env.CLAUDE_PLUGIN_ROOT = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omcx') + '/';
             expect(isProjectScopedPlugin()).toBe(false);
         });
     });
@@ -537,7 +537,7 @@ describe('Installer Constants', () => {
             expect(existsSync(templatesLibDir)).toBe(true);
             const libFiles = readdirSync(templatesLibDir);
             // Required lib files that must be present
-            const requiredFiles = ['stdin.mjs', 'atomic-write.mjs', 'config-dir.mjs', 'state-root.mjs', 'model-routing-override-message.mjs'];
+            const requiredFiles = ['stdin.mjs', 'atomic-write.mjs', 'config-dir.mjs', 'state-root.mjs', 'model-routing-override-message.mjs', 'bounded-git-timeout.mjs'];
             for (const file of requiredFiles) {
                 expect(libFiles).toContain(file);
             }
