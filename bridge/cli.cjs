@@ -16035,7 +16035,7 @@ function analyzeLegacyClaudeMd(content) {
         counters.candidateWindows += 1;
         const bytes = Buffer.byteLength(normalized, "utf8");
         counters.bytesHashed += bytes;
-        const digest3 = (0, import_crypto14.createHash)("sha256").update(normalized, "utf8").digest("hex");
+        const digest3 = (0, import_crypto15.createHash)("sha256").update(normalized, "utf8").digest("hex");
         if (digest3 === variant.normalizedSha256) {
           rawMatches.push({ start: segmentLines[start].start, end: last.eolEnd, variantId: variant.id });
           exactAtStart = true;
@@ -16083,11 +16083,11 @@ function removeClaudeMdRanges(content, ranges) {
   }
   return result;
 }
-var import_crypto14, OMC_START_MARKER, OMC_END_MARKER;
+var import_crypto15, OMC_START_MARKER, OMC_END_MARKER;
 var init_claude_md_analysis = __esm({
   "src/installer/claude-md-analysis.ts"() {
     "use strict";
-    import_crypto14 = require("crypto");
+    import_crypto15 = require("crypto");
     init_legacy_claude_md_corpus();
     OMC_START_MARKER = "<!-- OMC:START -->";
     OMC_END_MARKER = "<!-- OMC:END -->";
@@ -16487,7 +16487,7 @@ function listStandaloneHookLibPayloadFilenames() {
 }
 function hashFileContents(path25) {
   try {
-    return (0, import_crypto15.createHash)("sha256").update((0, import_fs47.readFileSync)(path25)).digest("hex");
+    return (0, import_crypto16.createHash)("sha256").update((0, import_fs47.readFileSync)(path25)).digest("hex");
   } catch {
     return null;
   }
@@ -17969,12 +17969,12 @@ function getInstallInfo() {
     return null;
   }
 }
-var import_fs47, import_crypto15, import_path58, import_url9, import_os12, import_child_process17, CLAUDE_CONFIG_DIR, AGENTS_DIR, COMMANDS_DIR, SKILLS_DIR, HOOKS_DIR, HUD_DIR, SETTINGS_FILE, VERSION_FILE, OMC_MANAGED_SKILL_MARKER, PLUGIN_FULL_SKILL_BODIES_DIR, PLUGIN_COMPACT_SKILL_SHIM_MARKER, CORE_COMMANDS, VERSION, OMC_VERSION_MARKER_PATTERN, CC_NATIVE_COMMANDS, SKININTHEGAMEBROS_ONLY_SKILLS, OMC_HOOK_FILENAMES, OMC_HOOK_EXTRA_FILENAMES, STANDALONE_HOOK_TEMPLATE_FILES, PLUGIN_SYNC_PAYLOAD, REQUIRED_PLUGIN_PAYLOAD_FILES, REQUIRED_PLUGIN_COMMAND_FILES;
+var import_fs47, import_crypto16, import_path58, import_url9, import_os12, import_child_process17, CLAUDE_CONFIG_DIR, AGENTS_DIR, COMMANDS_DIR, SKILLS_DIR, HOOKS_DIR, HUD_DIR, SETTINGS_FILE, VERSION_FILE, OMC_MANAGED_SKILL_MARKER, PLUGIN_FULL_SKILL_BODIES_DIR, PLUGIN_COMPACT_SKILL_SHIM_MARKER, CORE_COMMANDS, VERSION, OMC_VERSION_MARKER_PATTERN, CC_NATIVE_COMMANDS, SKININTHEGAMEBROS_ONLY_SKILLS, OMC_HOOK_FILENAMES, OMC_HOOK_EXTRA_FILENAMES, STANDALONE_HOOK_TEMPLATE_FILES, PLUGIN_SYNC_PAYLOAD, REQUIRED_PLUGIN_PAYLOAD_FILES, REQUIRED_PLUGIN_COMMAND_FILES;
 var init_installer = __esm({
   "src/installer/index.ts"() {
     "use strict";
     import_fs47 = require("fs");
-    import_crypto15 = require("crypto");
+    import_crypto16 = require("crypto");
     import_path58 = require("path");
     import_url9 = require("url");
     import_os12 = require("os");
@@ -21275,7 +21275,7 @@ function hashFacts(opts) {
     testCommand: opts.testCommand?.trim() ?? "",
     lintCommand: opts.lintCommand?.trim() ?? ""
   };
-  return (0, import_crypto16.createHash)("sha256").update(JSON.stringify(normalized)).digest("hex").slice(0, 16);
+  return (0, import_crypto17.createHash)("sha256").update(JSON.stringify(normalized)).digest("hex").slice(0, 16);
 }
 function buildCacheKey(root2, opts) {
   return `${root2}@${readGitHead(root2)}#${hashFacts(opts)}`;
@@ -21365,13 +21365,13 @@ function readCachedBrief(readPath2) {
     return null;
   }
 }
-var import_child_process21, import_fs55, import_crypto16, REPO_BRIEF_TOKEN_CAP, REPO_BRIEF_STATE_MODE, TRUNCATION_MARKER, SECRET_PATTERN;
+var import_child_process21, import_fs55, import_crypto17, REPO_BRIEF_TOKEN_CAP, REPO_BRIEF_STATE_MODE, TRUNCATION_MARKER, SECRET_PATTERN;
 var init_preamble = __esm({
   "src/agents/preamble.ts"() {
     "use strict";
     import_child_process21 = require("child_process");
     import_fs55 = require("fs");
-    import_crypto16 = require("crypto");
+    import_crypto17 = require("crypto");
     init_worktree_paths();
     init_mode_state_io();
     init_preemptive_compaction();
@@ -23939,7 +23939,7 @@ function isAuthenticatedAutopilotCancelSignal(signal, target) {
   if (!Number.isFinite(requestedAt) || requestedAt > now + CANCEL_SIGNAL_CLOCK_SKEW_MS || now - requestedAt > CANCEL_SIGNAL_TTL_MS2 || !Number.isFinite(expiresAt) || expiresAt <= requestedAt || expiresAt - requestedAt > CANCEL_SIGNAL_TTL_MS2 || expiresAt <= now) {
     return false;
   }
-  const digest3 = (0, import_crypto17.createHash)("sha256").update(JSON.stringify(target.state)).digest("hex");
+  const digest3 = (0, import_crypto18.createHash)("sha256").update(JSON.stringify(target.state)).digest("hex");
   if (typeof signal.target_state_sha256 !== "string" || !/^[a-f0-9]{64}$/.test(signal.target_state_sha256) || signal.target_state_sha256 !== digest3) {
     return false;
   }
@@ -25389,11 +25389,11 @@ function createHookOutput(result) {
     message: result.message || void 0
   };
 }
-var import_crypto17, import_fs59, import_path67, CANCEL_SIGNAL_TTL_MS2, CANCEL_SIGNAL_CLOCK_SKEW_MS, STALE_STATE_THRESHOLD_MS, PENDING_ASYNC_STATE_STALE_MS, OVERSIZE_TOOL_RESULT_REDIRECT_STOP_MAX, OVERSIZE_TOOL_RESULT_REDIRECT_STOP_TTL_MS, TERMINAL_WORKFLOW_SLOT_MODES, TERMINAL_WORKFLOW_PHASES, todoContinuationAttempts, TRANSCRIPT_TAIL_BYTES, CRITICAL_CONTEXT_STOP_PERCENT, RALPLAN_TERMINAL_PHASES, REVIEWER_TASK_TOOL_NAMES, REVIEWER_COMMAND_TOOL_NAMES, AWAITING_CONFIRMATION_TTL_MS, THINKING_ONLY_STREAK_BREAKER, THINKING_ONLY_STREAK_MAX, THINKING_ONLY_STREAK_TTL_MS, THINKING_ONLY_STREAK_BAILOUT_MESSAGE, TEAM_PIPELINE_STOP_BLOCKER_MAX, TEAM_PIPELINE_STOP_BLOCKER_TTL_MS, RALPLAN_STOP_BLOCKER_MAX, RALPLAN_STOP_BLOCKER_TTL_MS, RALPLAN_ACTIVE_AGENT_RECENCY_WINDOW_MS;
+var import_crypto18, import_fs59, import_path67, CANCEL_SIGNAL_TTL_MS2, CANCEL_SIGNAL_CLOCK_SKEW_MS, STALE_STATE_THRESHOLD_MS, PENDING_ASYNC_STATE_STALE_MS, OVERSIZE_TOOL_RESULT_REDIRECT_STOP_MAX, OVERSIZE_TOOL_RESULT_REDIRECT_STOP_TTL_MS, TERMINAL_WORKFLOW_SLOT_MODES, TERMINAL_WORKFLOW_PHASES, todoContinuationAttempts, TRANSCRIPT_TAIL_BYTES, CRITICAL_CONTEXT_STOP_PERCENT, RALPLAN_TERMINAL_PHASES, REVIEWER_TASK_TOOL_NAMES, REVIEWER_COMMAND_TOOL_NAMES, AWAITING_CONFIRMATION_TTL_MS, THINKING_ONLY_STREAK_BREAKER, THINKING_ONLY_STREAK_MAX, THINKING_ONLY_STREAK_TTL_MS, THINKING_ONLY_STREAK_BAILOUT_MESSAGE, TEAM_PIPELINE_STOP_BLOCKER_MAX, TEAM_PIPELINE_STOP_BLOCKER_TTL_MS, RALPLAN_STOP_BLOCKER_MAX, RALPLAN_STOP_BLOCKER_TTL_MS, RALPLAN_ACTIVE_AGENT_RECENCY_WINDOW_MS;
 var init_persistent_mode = __esm({
   "src/hooks/persistent-mode/index.ts"() {
     "use strict";
-    import_crypto17 = require("crypto");
+    import_crypto18 = require("crypto");
     import_fs59 = require("fs");
     init_atomic_write();
     import_path67 = require("path");
@@ -26806,7 +26806,7 @@ function sessionEndJobsDirectory(directory) {
   return path17.join(getOmcRoot(directory), "state", "session-end-jobs");
 }
 function digest(value) {
-  return (0, import_crypto18.createHash)("sha256").update(JSON.stringify(value)).digest("hex");
+  return (0, import_crypto19.createHash)("sha256").update(JSON.stringify(value)).digest("hex");
 }
 function nowIso() {
   return (/* @__PURE__ */ new Date()).toISOString();
@@ -26854,7 +26854,7 @@ function withLock(file, body) {
   const lock = lockPath(file);
   const reclaim = `${lock}.reclaim`;
   let fd;
-  const nonce = (0, import_crypto18.randomUUID)();
+  const nonce = (0, import_crypto19.randomUUID)();
   for (let attempt = 0; attempt < 250; attempt++) {
     try {
       if (fs12.existsSync(reclaim)) throw Object.assign(new Error("reclaim-in-progress"), { code: "EEXIST" });
@@ -26998,7 +26998,7 @@ function prepareCoreManifest(directory, sessionId, payload) {
       }
       const now = nowIso();
       const actions = Object.fromEntries(ACTIONS.map(([name, klass]) => [name, newAction(name, klass, durablePayload)]));
-      const job = { version: 1, jobId: (0, import_crypto18.randomUUID)(), sessionId, scopeKey: digest(directory), revision: 0, createdAt: now, updatedAt: now, ...initialDeadlines(), producers: { core: { state: "prepared", intentKey: digest(durablePayload), payloadDigest: digest(durablePayload) }, wiki: { state: "absent" } }, actions, owner: null, phase: "collecting" };
+      const job = { version: 1, jobId: (0, import_crypto19.randomUUID)(), sessionId, scopeKey: digest(directory), revision: 0, createdAt: now, updatedAt: now, ...initialDeadlines(), producers: { core: { state: "prepared", intentKey: digest(durablePayload), payloadDigest: digest(durablePayload) }, wiki: { state: "absent" } }, actions, owner: null, phase: "collecting" };
       atomicWriteJsonSync(jobPath, job);
       return readPath(jobPath);
     });
@@ -27054,7 +27054,7 @@ function sealWikiManifest(directory, sessionId, payload) {
           actions["wiki-capture"].status = "completed";
           actions["wiki-capture"].completedAt = now2;
         }
-        const job = { version: 1, jobId: (0, import_crypto18.randomUUID)(), sessionId, scopeKey: digest(directory), revision: 0, createdAt: now2, updatedAt: now2, ...initialDeadlines(), producers: { core: { state: "absent" }, wiki }, actions, owner: null, phase: "collecting" };
+        const job = { version: 1, jobId: (0, import_crypto19.randomUUID)(), sessionId, scopeKey: digest(directory), revision: 0, createdAt: now2, updatedAt: now2, ...initialDeadlines(), producers: { core: { state: "absent" }, wiki }, actions, owner: null, phase: "collecting" };
         atomicWriteJsonSync(jobPath, job);
         return readPath(jobPath);
       }
@@ -27152,7 +27152,7 @@ function claimSessionEndAction(directory, sessionId, ownerNonce, name, deadlineA
     action.attempts++;
     action.claimantNonce = ownerNonce;
     action.claimedAt = nowIso();
-    action.runner = { attempt: action.attempts, runnerNonce: (0, import_crypto18.randomUUID)(), phase: "reserved", deadlineAt: new Date(deadlineAt).toISOString() };
+    action.runner = { attempt: action.attempts, runnerNonce: (0, import_crypto19.randomUUID)(), phase: "reserved", deadlineAt: new Date(deadlineAt).toISOString() };
   });
 }
 function markSessionEndActionRunner(directory, sessionId, ownerNonce, name, runnerNonce, phase) {
@@ -27193,7 +27193,7 @@ function claimSessionEndDiscoveryTickets(directory, limit = 4, leaseMs = 15e3) {
         }
         const leased = ticket.leaseExpiresAt && Date.parse(ticket.leaseExpiresAt) > now;
         if (leased || Date.parse(ticket.retryAt) > now) continue;
-        const nonce = (0, import_crypto18.randomUUID)();
+        const nonce = (0, import_crypto19.randomUUID)();
         ticket.claimNonce = nonce;
         ticket.leaseExpiresAt = new Date(now + leaseMs).toISOString();
         claimed2.push({ sessionId: ticket.sessionId, nonce });
@@ -27292,13 +27292,13 @@ function failClosedMissingCoreProducer(directory, sessionId) {
     if (job.phase === "collecting") job.phase = "ready";
   });
 }
-var fs12, path17, import_crypto18, ACTIONS, TEST_PRODUCER_GRACE_ENV, PRODUCER_GRACE_MS, REQUIRED_ACTION_EXECUTION_MS, BEST_EFFORT_ACTION_EXECUTION_MS, REQUIRED_ACTION_MAX_ATTEMPTS, LOCK_WAIT, DISCOVERY_FILE;
+var fs12, path17, import_crypto19, ACTIONS, TEST_PRODUCER_GRACE_ENV, PRODUCER_GRACE_MS, REQUIRED_ACTION_EXECUTION_MS, BEST_EFFORT_ACTION_EXECUTION_MS, REQUIRED_ACTION_MAX_ATTEMPTS, LOCK_WAIT, DISCOVERY_FILE;
 var init_cleanup_manifest = __esm({
   "src/hooks/session-end/cleanup-manifest.ts"() {
     "use strict";
     fs12 = __toESM(require("fs"), 1);
     path17 = __toESM(require("path"), 1);
-    import_crypto18 = require("crypto");
+    import_crypto19 = require("crypto");
     init_atomic_write();
     init_worktree_paths();
     ACTIONS = [
@@ -29811,9 +29811,9 @@ function verifySlackSignature(signingSecret, signature, timestamp2, body) {
     return false;
   }
   const sigBasestring = `v0:${timestamp2}:${body}`;
-  const expectedSignature = "v0=" + (0, import_crypto19.createHmac)("sha256", signingSecret).update(sigBasestring).digest("hex");
+  const expectedSignature = "v0=" + (0, import_crypto20.createHmac)("sha256", signingSecret).update(sigBasestring).digest("hex");
   try {
-    return (0, import_crypto19.timingSafeEqual)(
+    return (0, import_crypto20.timingSafeEqual)(
       Buffer.from(expectedSignature),
       Buffer.from(signature)
     );
@@ -29920,11 +29920,11 @@ async function replySlackThread(botToken, channel, threadTs, text) {
     signal: AbortSignal.timeout(REACTION_TIMEOUT_MS)
   });
 }
-var import_crypto19, MAX_TIMESTAMP_AGE_SECONDS, VALID_ENVELOPE_TYPES, SlackConnectionStateTracker, API_TIMEOUT_MS, REACTION_TIMEOUT_MS, SlackSocketClient;
+var import_crypto20, MAX_TIMESTAMP_AGE_SECONDS, VALID_ENVELOPE_TYPES, SlackConnectionStateTracker, API_TIMEOUT_MS, REACTION_TIMEOUT_MS, SlackSocketClient;
 var init_slack_socket = __esm({
   "src/notifications/slack-socket.ts"() {
     "use strict";
-    import_crypto19 = require("crypto");
+    import_crypto20 = require("crypto");
     init_redact();
     MAX_TIMESTAMP_AGE_SECONDS = 300;
     VALID_ENVELOPE_TYPES = /* @__PURE__ */ new Set([
@@ -31010,7 +31010,7 @@ function acquireRegistryLock() {
   const started = Date.now();
   while (Date.now() - started < LOCK_TIMEOUT_MS) {
     try {
-      const token = (0, import_crypto20.randomUUID)();
+      const token = (0, import_crypto21.randomUUID)();
       const fd = (0, import_fs64.openSync)(
         getLockPath(),
         import_fs64.constants.O_CREAT | import_fs64.constants.O_EXCL | import_fs64.constants.O_WRONLY,
@@ -31185,13 +31185,13 @@ function rewriteRegistryUnsafe(mappings) {
   const content = mappings.map((m) => JSON.stringify(m)).join("\n") + "\n";
   (0, import_fs64.writeFileSync)(getRegistryPath(), content, { mode: SECURE_FILE_MODE });
 }
-var import_fs64, import_path75, import_crypto20, SECURE_FILE_MODE, MAX_AGE_MS, LOCK_TIMEOUT_MS, LOCK_RETRY_MS, LOCK_STALE_MS, LOCK_MAX_WAIT_MS, SLEEP_ARRAY;
+var import_fs64, import_path75, import_crypto21, SECURE_FILE_MODE, MAX_AGE_MS, LOCK_TIMEOUT_MS, LOCK_RETRY_MS, LOCK_STALE_MS, LOCK_MAX_WAIT_MS, SLEEP_ARRAY;
 var init_session_registry = __esm({
   "src/notifications/session-registry.ts"() {
     "use strict";
     import_fs64 = require("fs");
     import_path75 = require("path");
-    import_crypto20 = require("crypto");
+    import_crypto21 = require("crypto");
     init_platform();
     init_paths2();
     SECURE_FILE_MODE = 384;
@@ -31869,7 +31869,7 @@ function acquireLock(projectPath) {
   const started = Date.now();
   while (Date.now() - started < LOCK_TIMEOUT_MS2) {
     try {
-      const token = (0, import_crypto21.randomUUID)();
+      const token = (0, import_crypto22.randomUUID)();
       const fd = (0, import_fs66.openSync)(
         getLockPath2(projectPath),
         import_fs66.constants.O_CREAT | import_fs66.constants.O_EXCL | import_fs66.constants.O_WRONLY,
@@ -31929,7 +31929,7 @@ function normalizePrompt(prompt) {
   return prompt.replace(/\s+/g, " ").trim().slice(0, 400);
 }
 function promptHash(prompt) {
-  return (0, import_crypto21.createHash)("sha1").update(prompt).digest("hex").slice(0, 12);
+  return (0, import_crypto22.createHash)("sha1").update(prompt).digest("hex").slice(0, 12);
 }
 function buildDescriptor(event, signal, context, tmuxSession, projectPath) {
   const scope = `${projectPath}::${tmuxSession}`;
@@ -32017,12 +32017,12 @@ function shouldCollapseOpenClawBurst(event, signal, context, tmuxSession) {
     return shouldCollapse;
   });
 }
-var import_fs66, import_crypto21, import_path78, STATE_DIR, STATE_FILE2, LOCK_FILE, START_WINDOW_MS, PROMPT_WINDOW_MS, STOP_WINDOW_MS, STATE_TTL_MS, LOCK_TIMEOUT_MS2, LOCK_RETRY_MS2, LOCK_STALE_MS2, TERMINAL_STATE_SUPPRESSION_WINDOW_MS, SLEEP_ARRAY2, TERMINAL_KEYS;
+var import_fs66, import_crypto22, import_path78, STATE_DIR, STATE_FILE2, LOCK_FILE, START_WINDOW_MS, PROMPT_WINDOW_MS, STOP_WINDOW_MS, STATE_TTL_MS, LOCK_TIMEOUT_MS2, LOCK_RETRY_MS2, LOCK_STALE_MS2, TERMINAL_STATE_SUPPRESSION_WINDOW_MS, SLEEP_ARRAY2, TERMINAL_KEYS;
 var init_dedupe = __esm({
   "src/openclaw/dedupe.ts"() {
     "use strict";
     import_fs66 = require("fs");
-    import_crypto21 = require("crypto");
+    import_crypto22 = require("crypto");
     import_path78 = require("path");
     init_atomic_write();
     init_platform();
@@ -32347,7 +32347,7 @@ function captureKeyFor(intent) {
   if (typeof intent.captureKey === "string" && /^[a-f0-9]{64}$/.test(intent.captureKey)) {
     return intent.captureKey;
   }
-  return (0, import_crypto22.createHash)("sha256").update(`${intent.sessionId}\0${intent.filename}\0${intent.capturedAt}`).digest("hex");
+  return (0, import_crypto23.createHash)("sha256").update(`${intent.sessionId}\0${intent.filename}\0${intent.capturedAt}`).digest("hex");
 }
 function pageHasCaptureKey(page, captureKey) {
   return page?.content.includes(`<!-- omc-wiki-capture:${captureKey} -->`) ?? false;
@@ -32563,12 +32563,12 @@ function feedProjectMemory(root2) {
   } catch {
   }
 }
-var import_fs68, import_crypto22, import_path81;
+var import_fs68, import_crypto23, import_path81;
 var init_session_hooks = __esm({
   "src/hooks/wiki/session-hooks.ts"() {
     "use strict";
     import_fs68 = require("fs");
-    import_crypto22 = require("crypto");
+    import_crypto23 = require("crypto");
     import_path81 = require("path");
     init_worktree_paths();
     init_config_dir();
@@ -32789,7 +32789,7 @@ function canonicalize(value) {
   return `{${Object.keys(record2).sort().map((key) => `${JSON.stringify(key)}:${canonicalize(record2[key])}`).join(",")}}`;
 }
 function digest2(value) {
-  return (0, import_crypto23.createHash)("sha256").update(canonicalize(value)).digest("hex");
+  return (0, import_crypto24.createHash)("sha256").update(canonicalize(value)).digest("hex");
 }
 function recordBytes(record2) {
   const payloadHash = digest2(record2);
@@ -32904,7 +32904,7 @@ function publishOwnerEpoch(cwd2, teamName, epoch, input = {}) {
   const unsigned = {
     schema_version: 1,
     epoch,
-    nonce: input.nonce ?? (0, import_crypto23.randomUUID)(),
+    nonce: input.nonce ?? (0, import_crypto24.randomUUID)(),
     pid: input.pid ?? process.pid,
     process_started_at: start,
     created_at: (/* @__PURE__ */ new Date()).toISOString(),
@@ -32912,7 +32912,7 @@ function publishOwnerEpoch(cwd2, teamName, epoch, input = {}) {
   };
   const bytes = recordBytes(unsigned);
   const record2 = JSON.parse(bytes);
-  const temp = (0, import_path83.join)((0, import_path83.dirname)(target), `.${epoch}.${record2.nonce}.${(0, import_crypto23.randomUUID)()}.tmp`);
+  const temp = (0, import_path83.join)((0, import_path83.dirname)(target), `.${epoch}.${record2.nonce}.${(0, import_crypto24.randomUUID)()}.tmp`);
   (0, import_fs69.writeFileSync)(temp, bytes, { encoding: "utf8", mode: 384, flush: true });
   try {
     (0, import_fs69.linkSync)(temp, target);
@@ -32953,11 +32953,11 @@ function requireOwnerFence(cwd2, teamName, fence) {
   if (!result.ok) throw new Error("runtime_owner_fence_lost");
   return result.record;
 }
-var import_crypto23, import_fs69, import_path83, import_node_child_process6;
+var import_crypto24, import_fs69, import_path83, import_node_child_process6;
 var init_team_owner_epoch = __esm({
   "src/team/team-owner-epoch.ts"() {
     "use strict";
-    import_crypto23 = require("crypto");
+    import_crypto24 = require("crypto");
     import_fs69 = require("fs");
     import_path83 = require("path");
     import_node_child_process6 = require("node:child_process");
@@ -33740,7 +33740,7 @@ async function claimTask(taskId, workerName2, expectedVersion, deps) {
       if (v.claim) return { ok: false, error: "claim_conflict" };
       if (v.owner && v.owner !== workerName2) return { ok: false, error: "claim_conflict" };
     }
-    const claimToken = (0, import_crypto24.randomUUID)();
+    const claimToken = (0, import_crypto25.randomUUID)();
     const updated = {
       ...v,
       status: "in_progress",
@@ -33951,7 +33951,7 @@ async function adoptRecoveryReservations(taskIds, workerName2, proof, deps) {
       if (task.status !== "pending" || task.owner || task.claim || reservation.recovery_id !== proof.recoveryId || reservation.request_id !== proof.requestId || reservation.replacement_worker !== workerName2 || reservation.replacement_generation !== proof.replacementGeneration || !deps.verifyAdoptionToken(proof.adoptionToken, reservation.adoption_token_hash)) return { ok: false, error: "claim_conflict" };
       const checkpoint = await deps.readRecoveryCheckpoint(reservation.checkpoint_path);
       if (!checkpoint.ok || checkpoint.checkpoint.resume_payload_hash !== reservation.checkpoint_hash || checkpoint.checkpoint.sequence !== reservation.continuation_sequence) return { ok: false, error: checkpointError(checkpoint.ok ? "stale" : checkpoint.error) };
-      const claimToken = (0, import_crypto24.randomUUID)();
+      const claimToken = (0, import_crypto25.randomUUID)();
       const adoptedAt = (/* @__PURE__ */ new Date()).toISOString();
       const updated = { ...task, status: "in_progress", owner: workerName2, claim: { owner: workerName2, token: claimToken, leased_until: new Date(Date.now() + 15 * 60 * 1e3).toISOString() }, version: task.version + 1, recovery_reservation: void 0, recovery_adoption: { recovery_id: reservation.recovery_id, request_id: reservation.request_id, continuation_sequence: reservation.continuation_sequence, checkpoint_path: reservation.checkpoint_path, checkpoint_hash: reservation.checkpoint_hash, replacement_worker: workerName2, replacement_generation: reservation.replacement_generation, adopted_at: adoptedAt } };
       await deps.writeAtomic(deps.taskFilePath(deps.teamName, taskId, deps.cwd), JSON.stringify(updated, null, 2));
@@ -33963,11 +33963,11 @@ async function adoptRecoveryReservations(taskIds, workerName2, proof, deps) {
   }
   return results;
 }
-var import_crypto24, import_path85, import_fs71, import_promises7;
+var import_crypto25, import_path85, import_fs71, import_promises7;
 var init_tasks = __esm({
   "src/team/state/tasks.ts"() {
     "use strict";
-    import_crypto24 = require("crypto");
+    import_crypto25 = require("crypto");
     import_path85 = require("path");
     import_fs71 = require("fs");
     import_promises7 = require("fs/promises");
@@ -34981,7 +34981,7 @@ __export(events_exports, {
 });
 async function appendTeamEvent(teamName, event, cwd2) {
   const full = {
-    event_id: (0, import_crypto25.randomUUID)(),
+    event_id: (0, import_crypto26.randomUUID)(),
     team: teamName,
     created_at: (/* @__PURE__ */ new Date()).toISOString(),
     ...event
@@ -35052,11 +35052,11 @@ async function emitMonitorDerivedEvents(teamName, tasks, workers, previousSnapsh
     }
   }
 }
-var import_crypto25, import_path86, import_promises10, import_fs72;
+var import_crypto26, import_path86, import_promises10, import_fs72;
 var init_events = __esm({
   "src/team/events.ts"() {
     "use strict";
-    import_crypto25 = require("crypto");
+    import_crypto26 = require("crypto");
     import_path86 = require("path");
     import_promises10 = require("fs/promises");
     import_fs72 = require("fs");
@@ -35939,7 +35939,7 @@ function buildWorkerLaunchSpec(shellPath) {
   return { shell: "/bin/sh", rcFile: null };
 }
 function commandFingerprint(value) {
-  return (0, import_crypto26.createHash)("sha256").update(value).digest("hex").slice(0, 12);
+  return (0, import_crypto27.createHash)("sha256").update(value).digest("hex").slice(0, 12);
 }
 function redactWorkerStartCommandForLog(command) {
   return command.replace(/\b([A-Za-z_][A-Za-z0-9_]*)='[^']*'/g, "$1='<redacted>'").replace(/set "([A-Za-z_][A-Za-z0-9_]*)=[^"]*"/g, 'set "$1=<redacted>"').replace(/\$env:([A-Za-z_][A-Za-z0-9_]*)='[^']*'/g, "$env:$1='<redacted>'").replace(
@@ -36894,12 +36894,12 @@ async function killTeamSession(sessionName2, workerPaneIds, leaderPaneId, option
   } catch {
   }
 }
-var import_fs73, import_crypto26, import_child_process26, import_util10, import_path88, import_promises11, sleep4, execFileAsync5, TMUX_SESSION_PREFIX, TMUX_MAILBOX_PANE_ID, TMUX_MAILBOX_TARGET, defaultMailboxTargetOwnershipDependencies, defaultDirectMailboxEffectDependencies, SUPPORTED_POSIX_SHELLS, ZSH_CANDIDATES, BASH_CANDIDATES, DANGEROUS_LAUNCH_BINARY_CHARS;
+var import_fs73, import_crypto27, import_child_process26, import_util10, import_path88, import_promises11, sleep4, execFileAsync5, TMUX_SESSION_PREFIX, TMUX_MAILBOX_PANE_ID, TMUX_MAILBOX_TARGET, defaultMailboxTargetOwnershipDependencies, defaultDirectMailboxEffectDependencies, SUPPORTED_POSIX_SHELLS, ZSH_CANDIDATES, BASH_CANDIDATES, DANGEROUS_LAUNCH_BINARY_CHARS;
 var init_tmux_session = __esm({
   "src/team/tmux-session.ts"() {
     "use strict";
     import_fs73 = require("fs");
-    import_crypto26 = require("crypto");
+    import_crypto27 = require("crypto");
     import_child_process26 = require("child_process");
     import_util10 = require("util");
     import_path88 = require("path");
@@ -37358,7 +37358,7 @@ function normalizeDispatchRequest(teamName, raw, nowIso2 = (/* @__PURE__ */ new 
   if (typeof raw.trigger_message !== "string" || raw.trigger_message.trim() === "") return null;
   const status = isDispatchStatus(raw.status) ? raw.status : "pending";
   return {
-    request_id: typeof raw.request_id === "string" && raw.request_id.trim() !== "" ? raw.request_id : (0, import_crypto27.randomUUID)(),
+    request_id: typeof raw.request_id === "string" && raw.request_id.trim() !== "" ? raw.request_id : (0, import_crypto28.randomUUID)(),
     kind: raw.kind,
     team_name: teamName,
     to_worker: raw.to_worker,
@@ -37549,7 +37549,7 @@ async function enqueueDispatchRequest(teamName, requestInput, cwd2) {
     const request = normalizeDispatchRequest(
       teamName,
       {
-        request_id: (0, import_crypto27.randomUUID)(),
+        request_id: (0, import_crypto28.randomUUID)(),
         ...requestInput,
         status: "pending",
         attempt_count: 0,
@@ -37617,11 +37617,11 @@ async function markDispatchRequestDelivered(teamName, requestId, patch = {}, cwd
   if (current.status === "delivered") return current;
   return await transitionDispatchRequest(teamName, requestId, current.status, "delivered", patch, cwd2);
 }
-var import_crypto27, import_fs75, import_promises13, import_path91, OMC_DISPATCH_LOCK_TIMEOUT_ENV, DEFAULT_DISPATCH_LOCK_TIMEOUT_MS, MIN_DISPATCH_LOCK_TIMEOUT_MS, MAX_DISPATCH_LOCK_TIMEOUT_MS, DISPATCH_LOCK_INITIAL_POLL_MS, DISPATCH_LOCK_MAX_POLL_MS, LOCK_STALE_MS3;
+var import_crypto28, import_fs75, import_promises13, import_path91, OMC_DISPATCH_LOCK_TIMEOUT_ENV, DEFAULT_DISPATCH_LOCK_TIMEOUT_MS, MIN_DISPATCH_LOCK_TIMEOUT_MS, MAX_DISPATCH_LOCK_TIMEOUT_MS, DISPATCH_LOCK_INITIAL_POLL_MS, DISPATCH_LOCK_MAX_POLL_MS, LOCK_STALE_MS3;
 var init_dispatch_queue = __esm({
   "src/team/dispatch-queue.ts"() {
     "use strict";
-    import_crypto27 = require("crypto");
+    import_crypto28 = require("crypto");
     import_fs75 = require("fs");
     import_promises13 = require("fs/promises");
     import_path91 = require("path");
@@ -40398,7 +40398,7 @@ function canonicalize2(value) {
   return `{${Object.keys(object3).filter((key) => object3[key] !== void 0).sort().map((key) => `${JSON.stringify(key)}:${canonicalize2(object3[key])}`).join(",")}}`;
 }
 function sha256(value) {
-  return (0, import_crypto28.createHash)("sha256").update(canonicalize2(value)).digest("hex");
+  return (0, import_crypto29.createHash)("sha256").update(canonicalize2(value)).digest("hex");
 }
 function parseCanonical(path25) {
   try {
@@ -40424,7 +40424,7 @@ function phaseDirectory(cwd2, requestId) {
 function publishImmutable(target, value) {
   const bytes = canonicalize2(value);
   (0, import_fs78.mkdirSync)((0, import_path94.dirname)(target), { recursive: true, mode: 448 });
-  const temp = (0, import_path94.join)((0, import_path94.dirname)(target), `.${(0, import_crypto28.randomUUID)()}.tmp`);
+  const temp = (0, import_path94.join)((0, import_path94.dirname)(target), `.${(0, import_crypto29.randomUUID)()}.tmp`);
   (0, import_fs78.writeFileSync)(temp, bytes, { encoding: "utf8", mode: 384, flush: true });
   try {
     (0, import_fs78.linkSync)(temp, target);
@@ -40445,7 +40445,7 @@ function publishImmutable(target, value) {
 function replaceDerivedIndex(target, value) {
   const bytes = canonicalize2(value);
   (0, import_fs78.mkdirSync)((0, import_path94.dirname)(target), { recursive: true, mode: 448 });
-  const temp = (0, import_path94.join)((0, import_path94.dirname)(target), `.${(0, import_crypto28.randomUUID)()}.repair.tmp`);
+  const temp = (0, import_path94.join)((0, import_path94.dirname)(target), `.${(0, import_crypto29.randomUUID)()}.repair.tmp`);
   (0, import_fs78.writeFileSync)(temp, bytes, { encoding: "utf8", mode: 384, flush: true });
   try {
     (0, import_fs78.renameSync)(temp, target);
@@ -40459,7 +40459,7 @@ function replaceDerivedIndex(target, value) {
 function canonicalRecoveryPayloadHash(payload) {
   return sha256({ operation: payload.operation, workspace_hash: payload.workspaceHash, team_name: payload.teamName, worker_name: payload.workerName });
 }
-function reserveRecoveryRequest(cwd2, requestId, payload, recoveryId = (0, import_crypto28.randomUUID)()) {
+function reserveRecoveryRequest(cwd2, requestId, payload, recoveryId = (0, import_crypto29.randomUUID)()) {
   assertSafeRecoveryRequestId(requestId);
   assertSafeRecoveryRequestId(recoveryId);
   const payloadHash = canonicalRecoveryPayloadHash(payload);
@@ -40560,7 +40560,7 @@ function writeRecoveryPhase(cwd2, phase) {
   if (!reservation || reservation.kind !== "reservation" || !hasMatchingRecoveryPhaseTuple(phase, reservation)) {
     throw new Error("invalid_persisted_state");
   }
-  const sequence = `${Date.now().toString().padStart(16, "0")}-${process.hrtime.bigint().toString().padStart(20, "0")}-${(0, import_crypto28.randomUUID)()}.json`;
+  const sequence = `${Date.now().toString().padStart(16, "0")}-${process.hrtime.bigint().toString().padStart(20, "0")}-${(0, import_crypto29.randomUUID)()}.json`;
   return publishImmutable((0, import_path94.join)(phaseDirectory(cwd2, phase.request_id), sequence), { ...phase, schema_version: 1, kind: "phase", updated_at: phase.updated_at || (/* @__PURE__ */ new Date()).toISOString() });
 }
 function writeRecoveryFinal(cwd2, outcome) {
@@ -40668,11 +40668,11 @@ function readRecoveryResult(cwd2, requestId) {
   const outcome = readRecoveryOutcome(cwd2, requestId);
   return outcome?.kind === "final" ? outcome.result ?? null : null;
 }
-var import_crypto28, import_fs78, import_path94, RETENTION_MS, MAX_RECOVERY_ALIAS_DEPTH, RECOVERY_ERRORS, RECOVERY_WARNINGS;
+var import_crypto29, import_fs78, import_path94, RETENTION_MS, MAX_RECOVERY_ALIAS_DEPTH, RECOVERY_ERRORS, RECOVERY_WARNINGS;
 var init_recovery_request_store = __esm({
   "src/team/recovery-request-store.ts"() {
     "use strict";
-    import_crypto28 = require("crypto");
+    import_crypto29 = require("crypto");
     import_fs78 = require("fs");
     import_path94 = require("path");
     init_state_paths();
@@ -45676,7 +45676,7 @@ function startReplyListener(_config) {
     child.unref();
     const pid = child.pid;
     if (pid) {
-      const generation = (0, import_crypto29.randomUUID)();
+      const generation = (0, import_crypto30.randomUUID)();
       writePidFile({ pid, generation });
       const state = {
         isRunning: true,
@@ -45849,7 +45849,7 @@ function processSlackSocketMessage(rawMessage, connectionState, paneId, config2,
   }
   return { injected: success, validation };
 }
-var import_fs82, import_path99, import_url12, import_child_process28, import_crypto29, import_https2, __filename2, SECURE_FILE_MODE2, MAX_LOG_SIZE_BYTES, DAEMON_ENV_ALLOWLIST, DEFAULT_STATE_DIR, PID_FILE_PATH, STATE_FILE_PATH, LOG_FILE_PATH, RateLimiter, discordBackoffUntil, PRUNE_INTERVAL_MS;
+var import_fs82, import_path99, import_url12, import_child_process28, import_crypto30, import_https2, __filename2, SECURE_FILE_MODE2, MAX_LOG_SIZE_BYTES, DAEMON_ENV_ALLOWLIST, DEFAULT_STATE_DIR, PID_FILE_PATH, STATE_FILE_PATH, LOG_FILE_PATH, RateLimiter, discordBackoffUntil, PRUNE_INTERVAL_MS;
 var init_reply_listener = __esm({
   "src/notifications/reply-listener.ts"() {
     "use strict";
@@ -45857,7 +45857,7 @@ var init_reply_listener = __esm({
     import_path99 = require("path");
     import_url12 = require("url");
     import_child_process28 = require("child_process");
-    import_crypto29 = require("crypto");
+    import_crypto30 = require("crypto");
     init_tmux_utils();
     import_https2 = require("https");
     init_daemon_module_path();
@@ -46642,7 +46642,7 @@ function reschedulePendingWorker(payload, job) {
 }
 async function processSessionEndWorker(payload) {
   const deadlineAt = Date.now() + MAX_WORKER_MS;
-  const nonce = (0, import_crypto30.randomUUID)();
+  const nonce = (0, import_crypto31.randomUUID)();
   const identity = await getProcessStartIdentity(process.pid, Math.min(deadlineAt, Date.now() + 250));
   if (!identity) return;
   let claimed = claimSessionEndJob(payload.directory, payload.sessionId, nonce, identity, deadlineAt);
@@ -46711,12 +46711,12 @@ function reconcileSessionEndJobs(directory, sessionIds) {
     if (ticket.nonce && !spawned) releaseSessionEndDiscoveryTicket(directory, ticket.sessionId, ticket.nonce, false);
   }
 }
-var import_child_process29, import_crypto30, import_url13, WORKER_ARG, MAX_WORKER_MS, workerIndex;
+var import_child_process29, import_crypto31, import_url13, WORKER_ARG, MAX_WORKER_MS, workerIndex;
 var init_worker = __esm({
   "src/hooks/session-end/worker.ts"() {
     "use strict";
     import_child_process29 = require("child_process");
-    import_crypto30 = require("crypto");
+    import_crypto31 = require("crypto");
     import_url13 = require("url");
     init_cleanup_manifest();
     init_action_runner();
@@ -54034,7 +54034,7 @@ function createRateLimitedCacheEntry(source, data, pollIntervalMs, previousCount
 function getKeychainServiceName() {
   const configDir = process.env.CLAUDE_CONFIG_DIR;
   if (configDir) {
-    const hash = (0, import_crypto33.createHash)("sha256").update(configDir).digest("hex").slice(0, 8);
+    const hash = (0, import_crypto34.createHash)("sha256").update(configDir).digest("hex").slice(0, 8);
     return `Claude Code-credentials-${hash}`;
   }
   return "Claude Code-credentials";
@@ -54734,7 +54734,7 @@ async function getUsage() {
     return { rateLimits: null, error: "network" };
   }
 }
-var import_fs113, import_path132, import_child_process37, import_crypto33, import_os20, import_https3, CACHE_TTL_FAILURE_MS, CACHE_TTL_TRANSIENT_NETWORK_MS, MAX_RATE_LIMITED_BACKOFF_MS, API_TIMEOUT_MS2, MAX_STALE_DATA_MS, TOKEN_REFRESH_URL_HOSTNAME, USAGE_CACHE_LOCK_OPTS, TOKEN_REFRESH_URL_PATH, DEFAULT_OAUTH_CLIENT_ID, ZAI_UNIT_WEEK;
+var import_fs113, import_path132, import_child_process37, import_crypto34, import_os20, import_https3, CACHE_TTL_FAILURE_MS, CACHE_TTL_TRANSIENT_NETWORK_MS, MAX_RATE_LIMITED_BACKOFF_MS, API_TIMEOUT_MS2, MAX_STALE_DATA_MS, TOKEN_REFRESH_URL_HOSTNAME, USAGE_CACHE_LOCK_OPTS, TOKEN_REFRESH_URL_PATH, DEFAULT_OAUTH_CLIENT_ID, ZAI_UNIT_WEEK;
 var init_usage_api = __esm({
   "src/hud/usage-api.ts"() {
     "use strict";
@@ -54742,7 +54742,7 @@ var init_usage_api = __esm({
     init_config_dir();
     import_path132 = require("path");
     import_child_process37 = require("child_process");
-    import_crypto33 = require("crypto");
+    import_crypto34 = require("crypto");
     import_os20 = require("os");
     import_https3 = __toESM(require("https"), 1);
     init_ssrf_guard();
@@ -86786,6 +86786,160 @@ function validatePayload(payload, limits = {}) {
 
 // src/tools/state-tools.ts
 init_mode_state_io();
+
+// src/lib/ledger-verification.ts
+var P_MAX = 3;
+var STAMPED_RISK_MAX_RATIO = 0.5;
+var MAX_ROUNDS = 20;
+var CANONICAL_AXIS_KEYWORDS = [
+  "dependency-direction",
+  "module-boundaries",
+  "error-taxonomy",
+  "transaction-boundaries",
+  "consistency-model",
+  "schema-evolution",
+  "api-versioning",
+  "cross-cutting-concerns",
+  "testability-seams",
+  "failure-isolation",
+  "performance-envelope",
+  "deploy-topology"
+];
+var EARLY_EXIT_STATUS = "BELOW_THRESHOLD_EARLY_EXIT";
+var FILE_LINE_PATTERN = /[^\s:]+:\d+/;
+function asRecord(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : null;
+}
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+function asString(value) {
+  return typeof value === "string" ? value : "";
+}
+function rowStatus(row) {
+  return asString(row.status).trim().toLowerCase();
+}
+function isMaterial(row) {
+  return row.material === true;
+}
+function rowText(row) {
+  return [asString(row.choice), asString(row.axis), asString(row.rationale), asString(row.material_reason)].join(" ").toLowerCase();
+}
+function looksLikeAttestation(rows) {
+  return rows.some((row) => {
+    const text = [asString(row.choice), asString(row.rationale)].join(" ").toLowerCase();
+    return text.includes("no material fork") || text.includes("no material forks");
+  });
+}
+function countActiveComponents(diState) {
+  const topology = asRecord(diState.topology);
+  if (!topology) return 0;
+  const components = asArray(topology.components).map(asRecord).filter((c) => c !== null);
+  const active = components.filter((c) => c.deferred !== true && asString(c.status).trim().toLowerCase() !== "deferred");
+  return active.length > 0 ? active.length : components.length;
+}
+function specStatus(diState) {
+  const spec = asRecord(diState.spec);
+  const candidate = diState.Status ?? diState.spec_status ?? diState.status ?? (spec ? spec.Status ?? spec.status : void 0);
+  return asString(candidate).trim();
+}
+function hasFileLineEvidence(row) {
+  return asArray(row.evidence).some((entry) => FILE_LINE_PATTERN.test(asString(entry)));
+}
+function hasNoveltyNote(row) {
+  return asString(row.rationale).trim().length > 0;
+}
+function enforcementIsProse(mechanism) {
+  const value = mechanism.trim();
+  if (value.length === 0) return true;
+  const hasPathOrCommandToken = value.includes("/") || value.includes(".") || value.includes("::") || /\s/.test(value.trim());
+  return !hasPathOrCommandToken;
+}
+function hasPersistedUserExitTurn(rounds) {
+  return rounds.map(asRecord).some((round) => {
+    if (!round) return false;
+    if (round.user_exit === true || round.early_exit === true) return true;
+    const kind = asString(round.type ?? round.kind ?? round.event).toLowerCase();
+    return kind.includes("user-exit") || kind.includes("user_exit") || kind.includes("early-exit");
+  });
+}
+function evaluateLedgerVerification(diState) {
+  const blocks = [];
+  const state = asRecord(diState);
+  if (!state) {
+    return { verdict: "FAIL", blocks: ["deep-interview state is missing or malformed"] };
+  }
+  const ledger = asArray(state.decision_ledger).map(asRecord).filter((r) => r !== null);
+  const architectureContext = state.architecture_context ?? null;
+  const behaviorContext = state.behavior_context ?? null;
+  const invariants = asArray(state.architectural_invariants).map(asRecord).filter((r) => r !== null);
+  const rounds = asArray(state.rounds);
+  const activeComponents = countActiveComponents(state);
+  const status = specStatus(state);
+  const materialRows = ledger.filter(isMaterial);
+  const trivialAttestationExit = activeComponents <= 1 && looksLikeAttestation(ledger);
+  if ((architectureContext === null || behaviorContext === null) && !trivialAttestationExit) {
+    blocks.push("architecture_context or behavior_context is null without a single-trivial attestation row");
+  }
+  for (const row of ledger) {
+    if (isMaterial(row) && rowStatus(row) === "undecided") {
+      blocks.push(`material ledger row is undecided: ${asString(row.id) || rowText(row).slice(0, 40)}`);
+    }
+  }
+  for (const row of materialRows) {
+    if (rowStatus(row) !== "decided") continue;
+    const options = asArray(row.options);
+    const rationale = asString(row.rationale).trim();
+    if (options.length < 2 || rationale.length < 12 || asRecord(row.option_tradeoffs) === null) {
+      blocks.push(`decided material row misses the tradeoff floor: ${asString(row.id) || rowText(row).slice(0, 40)}`);
+    }
+  }
+  for (const row of materialRows) {
+    if (rowStatus(row) !== "conformed") continue;
+    if (!hasFileLineEvidence(row)) {
+      blocks.push(`conformed material row lacks file:line evidence: ${asString(row.id) || rowText(row).slice(0, 40)}`);
+    }
+  }
+  let pendingConsensusCount = 0;
+  for (const row of ledger) {
+    if (rowStatus(row) !== "pending_consensus") continue;
+    pendingConsensusCount += 1;
+    if (!hasNoveltyNote(row)) {
+      blocks.push(`pending_consensus row lacks a novelty note: ${asString(row.id) || rowText(row).slice(0, 40)}`);
+    }
+  }
+  if (pendingConsensusCount > P_MAX) {
+    blocks.push(`pending_consensus count ${pendingConsensusCount} exceeds P_max ${P_MAX}`);
+  }
+  const stampedRiskRows = ledger.filter((row) => rowStatus(row) === "stamped_risk");
+  if (stampedRiskRows.length > 0 && status !== EARLY_EXIT_STATUS) {
+    blocks.push("stamped_risk rows exist but spec Status is not BELOW_THRESHOLD_EARLY_EXIT");
+  }
+  if (materialRows.length > 0 && stampedRiskRows.length > materialRows.length * STAMPED_RISK_MAX_RATIO) {
+    blocks.push(`stamped_risk rows exceed ${STAMPED_RISK_MAX_RATIO * 100}% of material rows`);
+  }
+  if (activeComponents > 1) {
+    const coveredText = ledger.map(rowText).join(" ");
+    for (const axis of CANONICAL_AXIS_KEYWORDS) {
+      const keyword = axis.replace(/-/g, " ");
+      if (!coveredText.includes(axis) && !coveredText.includes(keyword)) {
+        blocks.push(`canonical axis not covered in the ledger: ${axis}`);
+      }
+    }
+  }
+  for (const invariant of invariants) {
+    if (enforcementIsProse(asString(invariant.enforcement_mechanism))) {
+      blocks.push(`architectural_invariant enforcement_mechanism is prose: ${asString(invariant.id) || asString(invariant.statement).slice(0, 40)}`);
+    }
+  }
+  if (status === EARLY_EXIT_STATUS && !(rounds.length >= MAX_ROUNDS || hasPersistedUserExitTurn(rounds))) {
+    blocks.push("BELOW_THRESHOLD_EARLY_EXIT is not falsifiable: no round cap reached and no persisted user-exit turn");
+  }
+  return { verdict: blocks.length === 0 ? "PASS" : "FAIL", blocks };
+}
+
+// src/tools/state-tools.ts
+var import_crypto12 = require("crypto");
 init_mode_registry();
 init_named_workflow_resume_validator();
 
@@ -87544,7 +87698,8 @@ var STATE_TOOL_MODES = [
   "ralplan",
   "omc-teams",
   "skill-active",
-  "merge-readiness"
+  "merge-readiness",
+  "ledger-verification"
 ];
 var STATE_WRITE_MODES = [
   ...EXECUTION_MODES,
@@ -88243,6 +88398,9 @@ var stateWriteTool = {
       session_id
     } = args;
     try {
+      if (mode === "ledger-verification") {
+        throw new Error("ledger-verification is runtime-owned; write it via the ledger_verify tool");
+      }
       const root2 = validateWorkingDirectory(workingDirectory);
       const sessionId = session_id;
       if (state) {
@@ -89173,12 +89331,77 @@ No active sessions for this mode.`);
     }
   }
 };
+var ledgerVerifyTool = {
+  name: "ledger_verify",
+  description: "Re-run the mechanical Ledger Verification Gate floors over the active deep-interview state and write the unforgeable runtime-owned ledger-verification record. This is the ONLY writer of that record; the interviewing context cannot forge it via state_write. Returns the verdict, block reasons, and the sha256 of the spec bytes.",
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  schema: {
+    spec_path: external_exports.string().max(500).optional().describe("Path to the final spec file. Defaults to the active deep-interview state spec_path."),
+    workingDirectory: external_exports.string().optional().describe("Working directory (defaults to cwd)"),
+    session_id: external_exports.string().optional().describe("Session ID for session-scoped state isolation.")
+  },
+  handler: async (args) => {
+    const { spec_path, workingDirectory, session_id } = args;
+    try {
+      const root2 = validateWorkingDirectory(workingDirectory);
+      const sessionId = session_id && session_id.trim() || process.env.CLAUDE_SESSION_ID && process.env.CLAUDE_SESSION_ID.trim() || resolveSessionId({ context: "cli" });
+      if (sessionId) validateSessionId(sessionId);
+      const diState = readModeState("deep-interview", root2, sessionId || void 0);
+      if (!diState) {
+        return {
+          content: [{ type: "text", text: "ledger_verify error: no active deep-interview state found for this session." }],
+          isError: true
+        };
+      }
+      const specPath = spec_path && spec_path.trim() || (typeof diState.spec_path === "string" ? diState.spec_path.trim() : "");
+      if (!specPath) {
+        return {
+          content: [{ type: "text", text: "ledger_verify error: no spec_path provided and none present in deep-interview state." }],
+          isError: true
+        };
+      }
+      const resolvedSpecPath = (0, import_path35.isAbsolute)(specPath) ? specPath : (0, import_path35.join)(root2, specPath);
+      const specBytes = (0, import_fs30.readFileSync)(resolvedSpecPath);
+      const specHash = (0, import_crypto11.createHash)("sha256").update(specBytes).digest("hex");
+      const { verdict, blocks } = evaluateLedgerVerification(diState);
+      const record2 = {
+        spec_hash: specHash,
+        verdict,
+        blocks,
+        verifier_run_id: (0, import_crypto12.randomUUID)(),
+        verified_at: (/* @__PURE__ */ new Date()).toISOString(),
+        _meta: { updatedBy: "ledger_verify_tool" }
+      };
+      const written = writeModeState("ledger-verification", record2, root2, sessionId || void 0);
+      if (!written) {
+        return {
+          content: [{ type: "text", text: "ledger_verify error: could not persist the ledger-verification record (state mutation lock unavailable)." }],
+          isError: true
+        };
+      }
+      return {
+        content: [{
+          type: "text",
+          text: `Ledger verification ${verdict}. spec_hash: ${specHash}
+${blocks.length > 0 ? `Blocks:
+- ${blocks.join("\n- ")}` : "No blocks."}`
+        }]
+      };
+    } catch (error2) {
+      return {
+        content: [{ type: "text", text: `ledger_verify error: ${error2 instanceof Error ? error2.message : String(error2)}` }],
+        isError: true
+      };
+    }
+  }
+};
 var stateTools = [
   stateReadTool,
   stateWriteTool,
   stateClearTool,
   stateListActiveTool,
   stateGetStatusTool,
+  ledgerVerifyTool,
   {
     name: "merge_readiness_start",
     description: "Initialize a merge-readiness gate session for the current change. Call this first, before merge_readiness_set_content. The depth profile is parsed from the summary (--quick or --deep; standard is the default when neither flag is present). Re-running it while an active attempt is still pending is rejected - cancel via merge_readiness_cancel or let the attempt pass/pause first, so the in-progress audit trail is never silently overwritten.",
@@ -91611,7 +91834,7 @@ init_file_lock();
 init_worktree_paths();
 
 // src/shared/artifact-descriptor.ts
-var import_crypto12 = require("crypto");
+var import_crypto13 = require("crypto");
 var import_fs38 = require("fs");
 var import_path49 = require("path");
 var DEFAULT_INLINE_ARTIFACT_THRESHOLD_BYTES = 2048;
@@ -91629,7 +91852,7 @@ function createArtifactDescriptorFromPath(path25, options) {
   return {
     kind: options.kind,
     path: path25,
-    contentHash: (0, import_crypto12.createHash)("sha256").update(content).digest("hex"),
+    contentHash: (0, import_crypto13.createHash)("sha256").update(content).digest("hex"),
     createdAt: options.createdAt ?? new Date(stats.mtimeMs).toISOString(),
     producer: options.producer,
     sizeBytes: stats.size,
@@ -91872,7 +92095,7 @@ function markMessageAsRead(cwd2, messageId) {
 var import_promises5 = require("fs/promises");
 var import_path51 = require("path");
 var import_fs40 = require("fs");
-var import_crypto13 = require("crypto");
+var import_crypto14 = require("crypto");
 init_atomic_write();
 var OmxWorkerInfoSchema = external_exports.object({
   name: external_exports.string(),
@@ -91983,7 +92206,7 @@ async function listOmxMailboxMessages(teamName, workerName2, cwd2) {
 }
 async function sendOmxDirectMessage(teamName, fromWorker, toWorker, body, cwd2) {
   const msg = {
-    message_id: (0, import_crypto13.randomUUID)(),
+    message_id: (0, import_crypto14.randomUUID)(),
     from_worker: fromWorker,
     to_worker: toWorker,
     body,
@@ -92050,7 +92273,7 @@ async function listOmxTasks(teamName, cwd2) {
 }
 async function appendOmxTeamEvent(teamName, event, cwd2) {
   const full = {
-    event_id: (0, import_crypto13.randomUUID)(),
+    event_id: (0, import_crypto14.randomUUID)(),
     team: teamName,
     created_at: (/* @__PURE__ */ new Date()).toISOString(),
     ...event
@@ -98414,7 +98637,7 @@ var import_fs90 = require("fs");
 var import_path107 = require("path");
 
 // src/hooks/rules-injector/matcher.ts
-var import_crypto31 = require("crypto");
+var import_crypto32 = require("crypto");
 var import_path105 = require("path");
 
 // src/hooks/rules-injector/storage.ts
@@ -99081,7 +99304,7 @@ init_config_dir();
 init_atomic_write();
 
 // src/hooks/learner/auto-learner.ts
-var import_crypto32 = require("crypto");
+var import_crypto33 = require("crypto");
 
 // src/hooks/index.ts
 init_autopilot();
@@ -102375,7 +102598,7 @@ ${missing.length} provider${missing.length === 1 ? "" : "s"} missing (warn only 
 }
 
 // src/cli/commands/capabilities.ts
-var import_crypto34 = require("crypto");
+var import_crypto35 = require("crypto");
 var import_fs116 = require("fs");
 var import_path135 = require("path");
 init_definitions();
@@ -102404,7 +102627,7 @@ function sortJson(value) {
   return value;
 }
 function sha2562(value) {
-  return (0, import_crypto34.createHash)("sha256").update(value).digest("hex");
+  return (0, import_crypto35.createHash)("sha256").update(value).digest("hex");
 }
 function resolveLockfilePath(lockfile) {
   return (0, import_path135.resolve)(process.cwd(), lockfile ?? DEFAULT_CAPABILITIES_LOCKFILE);
@@ -106583,7 +106806,7 @@ async function launchCommand(args) {
 
 // src/cli/interop.ts
 var import_child_process42 = require("child_process");
-var import_crypto35 = require("crypto");
+var import_crypto36 = require("crypto");
 init_tmux_utils();
 function readInteropRuntimeFlags(env2 = process.env) {
   const rawMode = (env2.OMX_OMC_INTEROP_MODE || "off").toLowerCase();
@@ -106641,7 +106864,7 @@ function launchInteropSession(cwd2 = process.cwd()) {
     console.error("Start tmux first: tmux new-session -s myproject");
     process.exit(1);
   }
-  const sessionId = `interop-${(0, import_crypto35.randomUUID)().split("-")[0]}`;
+  const sessionId = `interop-${(0, import_crypto36.randomUUID)().split("-")[0]}`;
   const _config = initInteropSession(sessionId, cwd2, hasCodex ? cwd2 : void 0);
   console.log(`Initializing interop session: ${sessionId}`);
   console.log(`Working directory: ${cwd2}`);

@@ -12,7 +12,9 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'pat
 import { resolveStatePath, ensureOmcDir, validateWorkingDirectory, resolveSessionStatePath, ensureSessionStateDir, listSessionIds, validateSessionId, getOmcRoot, OmcPaths, } from '../lib/worktree-paths.js';
 import { resolveSessionId } from '../lib/session-id.js';
 import { validatePayload } from '../lib/payload-limits.js';
-import { canClearStateForSession, findCompletedSessionStateFiles, findCompletedSessionStateCandidates, findSessionOwnedStateCandidates, findSessionOwnedStateFiles, getStateSessionOwner, writeStateFileLocked, writeStateFileLockedIf, writeStateFileLockedCreateIf, clearStateFileLockedIf, emergencyMutateStateFileIf, recoverEmergencyStateFile, } from '../lib/mode-state-io.js';
+import { canClearStateForSession, findCompletedSessionStateFiles, findCompletedSessionStateCandidates, findSessionOwnedStateCandidates, findSessionOwnedStateFiles, getStateSessionOwner, writeStateFileLocked, writeStateFileLockedIf, writeStateFileLockedCreateIf, clearStateFileLockedIf, emergencyMutateStateFileIf, recoverEmergencyStateFile, readModeState, writeModeState, } from '../lib/mode-state-io.js';
+import { evaluateLedgerVerification } from '../lib/ledger-verification.js';
+import { randomUUID } from 'crypto';
 import { isModeActive, getActiveModes, getAllModeStatuses, clearModeState, getStateFilePath, MODE_CONFIGS, getActiveSessionsForMode } from '../hooks/mode-registry/index.js';
 import { namedWorkflowRuntimeSupported, validateNamedWorkflowStateStructure } from '../hooks/autopilot/named-workflow-resume-validator.js';
 import { cancelMergeReadiness, createInitialMergeReadinessState, readMergeReadinessState, setMergeReadinessContent, recordMergeReadinessMCQAnswer } from '../hooks/merge-readiness/runtime.js';
@@ -23,15 +25,18 @@ import { formatMergeReadinessReport, redactMergeReadinessState } from '../hooks/
 const EXECUTION_MODES = [
     'autopilot', 'autoresearch', 'team', 'ralph', 'ultrawork', 'ultraqa', 'deep-interview', 'self-improve'
 ];
-// merge-readiness is read/clear-eligible (state_read/status/clear + /cancel work) but NOT write-eligible.
+// merge-readiness and ledger-verification are read/clear-eligible (state_read/status/clear
+// + /cancel work) but NOT write-eligible — both are runtime-owned.
 const STATE_TOOL_MODES = [
     ...EXECUTION_MODES,
     'ralplan',
     'omc-teams',
     'skill-active',
-    'merge-readiness'
+    'merge-readiness',
+    'ledger-verification'
 ];
-// Modes that may be generically written via state_write. Excludes merge-readiness (runtime-owned).
+// Modes that may be generically written via state_write. Excludes merge-readiness and
+// ledger-verification (runtime-owned).
 const STATE_WRITE_MODES = [
     ...EXECUTION_MODES,
     'ralplan',
@@ -756,6 +761,9 @@ export const stateWriteTool = {
     handler: async (args) => {
         const { mode, active, iteration, max_iterations, current_phase, task_description, plan_path, started_at, completed_at, error, state, workingDirectory, session_id } = args;
         try {
+            if (mode === 'ledger-verification') {
+                throw new Error('ledger-verification is runtime-owned; write it via the ledger_verify tool');
+            }
             const root = validateWorkingDirectory(workingDirectory);
             const sessionId = session_id;
             // Validate custom state payload size if provided
@@ -1861,12 +1869,79 @@ export const stateGetStatusTool = {
 /**
  * All state tools for registration
  */
+export const ledgerVerifyTool = {
+    name: 'ledger_verify',
+    description: 'Re-run the mechanical Ledger Verification Gate floors over the active deep-interview state and write the unforgeable runtime-owned ledger-verification record. This is the ONLY writer of that record; the interviewing context cannot forge it via state_write. Returns the verdict, block reasons, and the sha256 of the spec bytes.',
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    schema: {
+        spec_path: z.string().max(500).optional().describe('Path to the final spec file. Defaults to the active deep-interview state spec_path.'),
+        workingDirectory: z.string().optional().describe('Working directory (defaults to cwd)'),
+        session_id: z.string().optional().describe('Session ID for session-scoped state isolation.'),
+    },
+    handler: async (args) => {
+        const { spec_path, workingDirectory, session_id } = args;
+        try {
+            const root = validateWorkingDirectory(workingDirectory);
+            const sessionId = (session_id && session_id.trim())
+                || (process.env.CLAUDE_SESSION_ID && process.env.CLAUDE_SESSION_ID.trim())
+                || resolveSessionId({ context: 'cli' });
+            if (sessionId)
+                validateSessionId(sessionId);
+            const diState = readModeState('deep-interview', root, sessionId || undefined);
+            if (!diState) {
+                return {
+                    content: [{ type: 'text', text: 'ledger_verify error: no active deep-interview state found for this session.' }],
+                    isError: true,
+                };
+            }
+            const specPath = (spec_path && spec_path.trim()) || (typeof diState.spec_path === 'string' ? diState.spec_path.trim() : '');
+            if (!specPath) {
+                return {
+                    content: [{ type: 'text', text: 'ledger_verify error: no spec_path provided and none present in deep-interview state.' }],
+                    isError: true,
+                };
+            }
+            const resolvedSpecPath = isAbsolute(specPath) ? specPath : join(root, specPath);
+            const specBytes = readFileSync(resolvedSpecPath);
+            const specHash = createHash('sha256').update(specBytes).digest('hex');
+            const { verdict, blocks } = evaluateLedgerVerification(diState);
+            const record = {
+                spec_hash: specHash,
+                verdict,
+                blocks,
+                verifier_run_id: randomUUID(),
+                verified_at: new Date().toISOString(),
+                _meta: { updatedBy: 'ledger_verify_tool' },
+            };
+            const written = writeModeState('ledger-verification', record, root, sessionId || undefined);
+            if (!written) {
+                return {
+                    content: [{ type: 'text', text: 'ledger_verify error: could not persist the ledger-verification record (state mutation lock unavailable).' }],
+                    isError: true,
+                };
+            }
+            return {
+                content: [{
+                        type: 'text',
+                        text: `Ledger verification ${verdict}. spec_hash: ${specHash}\n${blocks.length > 0 ? `Blocks:\n- ${blocks.join('\n- ')}` : 'No blocks.'}`
+                    }]
+            };
+        }
+        catch (error) {
+            return {
+                content: [{ type: 'text', text: `ledger_verify error: ${error instanceof Error ? error.message : String(error)}` }],
+                isError: true,
+            };
+        }
+    }
+};
 export const stateTools = [
     stateReadTool,
     stateWriteTool,
     stateClearTool,
     stateListActiveTool,
     stateGetStatusTool,
+    ledgerVerifyTool,
     {
         name: 'merge_readiness_start',
         description: 'Initialize a merge-readiness gate session for the current change. Call this first, before merge_readiness_set_content. The depth profile is parsed from the summary (--quick or --deep; standard is the default when neither flag is present). Re-running it while an active attempt is still pending is rejected - cancel via merge_readiness_cancel or let the attempt pass/pause first, so the in-progress audit trail is never silently overwritten.',
