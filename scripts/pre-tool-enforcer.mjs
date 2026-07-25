@@ -682,6 +682,31 @@ const LEDGER_GATED_BRIDGE_SKILLS = new Set(['autopilot', 'ralph', 'team']);
 // reached completion and is awaiting the execution bridge.
 const DI_HANDOFF_PHASES = new Set(['spec-complete', 'pending-approval', 'pending_approval']);
 
+// Upper bound on the spec file the ledger gate is willing to hash on a tool call.
+// A file above this cap is treated as spec-unreadable (fail-open on read → deny at
+// the gate) so a pathological spec cannot be used to stall the hook. fstat the open
+// fd first to avoid a stat->open race, then read through that same fd.
+const MAX_LEDGER_SPEC_BYTES = 8 * 1024 * 1024;
+function readCappedSpecBytes(path) {
+  const fd = openSync(path, 'r');
+  try {
+    const stat = fstatSync(fd);
+    if (!stat.isFile() || stat.size > MAX_LEDGER_SPEC_BYTES) {
+      throw new Error('spec-too-large');
+    }
+    const buffer = Buffer.allocUnsafe(stat.size);
+    let read = 0;
+    while (read < stat.size) {
+      const n = readSync(fd, buffer, read, stat.size - read, read);
+      if (n <= 0) break;
+      read += n;
+    }
+    return buffer.subarray(0, read);
+  } finally {
+    try { closeSync(fd); } catch { /* ignore */ }
+  }
+}
+
 /**
  * Pure decision function for the deep-interview ledger bridge gate.
  * Testable in isolation without spawning the whole hook.
@@ -690,11 +715,12 @@ const DI_HANDOFF_PHASES = new Set(['spec-complete', 'pending-approval', 'pending
  * @param {string|null} args.skillName        normalized skill name (e.g. 'autopilot')
  * @param {object|null} args.diState          the deep-interview mode state object (or null)
  * @param {boolean} args.diStale              whether diState is stale (isStaleModeState result)
+ * @param {object|null} args.ledgerRecord     the runtime-owned ledger-verification record (or null)
  * @param {(specPath: string) => Buffer|Uint8Array|string} args.readSpecBytes
  *        reads the spec file bytes given the (already-resolved) spec path; may throw
  * @returns {{ allow: boolean, reason?: string }}
  */
-function evaluateLedgerBridgeGate({ skillName, diState, diStale, readSpecBytes }) {
+function evaluateLedgerBridgeGate({ skillName, diState, diStale, ledgerRecord, readSpecBytes }) {
   // (a) skill not gated → allow
   if (!skillName || !LEDGER_GATED_BRIDGE_SKILLS.has(skillName)) {
     return { allow: true };
@@ -707,27 +733,28 @@ function evaluateLedgerBridgeGate({ skillName, diState, diStale, readSpecBytes }
   }
 
   const phase = typeof di.current_phase === 'string' ? di.current_phase.trim() : '';
-  const awaiting = di.awaiting_execution_bridge === true || DI_HANDOFF_PHASES.has(phase);
-  // Active but not yet at the handoff boundary → allow.
+  const specPath = typeof di.spec_path === 'string' ? di.spec_path.trim() : '';
+  const awaiting = specPath !== ''
+    || di.awaiting_execution_bridge === true
+    || DI_HANDOFF_PHASES.has(phase);
   if (!awaiting) {
     return { allow: true };
   }
 
-  // Active-and-awaiting: ENFORCE the ledger.
-  const p45 = di.ledger_verification;
+  // Active-and-awaiting: ENFORCE the ledger via the runtime-owned record.
+  const record = ledgerRecord;
   const denyReason = (got) =>
     `[LEDGER GATE] deep-interview handoff to "${skillName}" is blocked: `
     + `the Ledger Verification Gate must record verdict:PASS with a spec hash matching `
-    + `the current spec (got: ${got}). Resolve the ledger and re-run the verifier.`;
+    + `the current spec (got: ${got}). Resolve the ledger and re-run the ledger_verify tool.`;
 
-  if (!p45 || typeof p45 !== 'object') {
+  if (!record || typeof record !== 'object') {
     return { allow: false, reason: denyReason('missing') };
   }
-  if (p45.verdict !== 'PASS') {
-    return { allow: false, reason: denyReason(p45.verdict === 'FAIL' ? 'FAIL' : 'missing') };
+  if (record.verdict !== 'PASS') {
+    return { allow: false, reason: denyReason(record.verdict === 'FAIL' ? 'FAIL' : 'missing') };
   }
 
-  const specPath = typeof di.spec_path === 'string' ? di.spec_path.trim() : '';
   if (!specPath) {
     return { allow: false, reason: denyReason('spec-unreadable') };
   }
@@ -743,7 +770,7 @@ function evaluateLedgerBridgeGate({ skillName, diState, diStale, readSpecBytes }
   }
 
   const actualHash = createHash('sha256').update(bytes).digest('hex');
-  if (actualHash !== p45.spec_hash) {
+  if (actualHash !== record.spec_hash) {
     return { allow: false, reason: denyReason('hash-mismatch') };
   }
 
@@ -1507,13 +1534,15 @@ async function main() {
         const skillName = extractSkillName(toolInput);
         if (skillName && LEDGER_GATED_BRIDGE_SKILLS.has(skillName)) {
           const { state: di } = readSessionModeState(stateDir, 'deep-interview', sessionId);
+          const { state: ledgerRecord } = readSessionModeState(stateDir, 'ledger-verification', sessionId);
           const result = evaluateLedgerBridgeGate({
             skillName,
             diState: di,
             diStale: isStaleModeState(di),
+            ledgerRecord,
             readSpecBytes: (specPath) => {
               const resolved = isAbsolute(specPath) ? specPath : join(directory, specPath);
-              return readFileSync(resolved);
+              return readCappedSpecBytes(resolved);
             },
           });
           if (!result.allow) ledgerDenyReason = result.reason;
