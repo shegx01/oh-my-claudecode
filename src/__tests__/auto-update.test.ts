@@ -328,7 +328,7 @@ describe('auto-update reconciliation', () => {
 
   it('syncs active plugin cache roots and logs when copy occurs', () => {
     const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    const activeRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.1.5');
+    const activeRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.1.5');
 
     mockedReadFileSync.mockImplementation((path: Parameters<typeof readFileSync>[0]) => {
       const normalized = String(path).replace(/\\/g, '/');
@@ -393,7 +393,7 @@ describe('auto-update reconciliation', () => {
 
 
   it('fails reconciliation when active plugin cache repair reports validation errors', () => {
-    const activeRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.14.1');
+    const activeRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.14.1');
 
     mockedReadFileSync.mockImplementation((path: Parameters<typeof readFileSync>[0]) => {
       const normalized = String(path).replace(/\\/g, '/');
@@ -458,7 +458,7 @@ describe('auto-update reconciliation', () => {
 
 
   it('updates installed_plugins.json to the new cache version after plugin cache sync succeeds', () => {
-    const cacheRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    const cacheRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
     const oldRoot = join(cacheRoot, '4.14.0');
     const newRoot = join(cacheRoot, '4.14.1');
     const installedPluginsPath = join(CLAUDE_CONFIG_DIR, 'plugins', 'installed_plugins.json');
@@ -481,7 +481,7 @@ describe('auto-update reconciliation', () => {
         return JSON.stringify({
           version: 2,
           plugins: {
-            'oh-my-claudecode@omc': [{ installPath: oldRoot, version: '4.14.0', enabled: true }],
+            'oh-my-claudecode@omcx': [{ installPath: oldRoot, version: '4.14.0', enabled: true }],
           },
         });
       }
@@ -489,7 +489,7 @@ describe('auto-update reconciliation', () => {
     });
     mockedExistsSync.mockImplementation((path: Parameters<typeof existsSync>[0]) => {
       const normalized = String(path).replace(/\\/g, '/');
-      return normalized.endsWith('/plugins/cache/omc/oh-my-claudecode')
+      return normalized.endsWith('/plugins/cache/omcx/oh-my-claudecode')
         || normalized.endsWith('/plugins/installed_plugins.json')
         || normalized.startsWith(join(cacheRoot, '4.14.1').replace(/\\/g, '/'))
         || normalized.startsWith('/usr/lib/node_modules/oh-my-claude-sisyphus');
@@ -508,7 +508,7 @@ describe('auto-update reconciliation', () => {
   });
 
   it('preserves Windows-style installPath separators when rewriting installed_plugins.json', () => {
-    const cacheRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    const cacheRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
     const oldWindowsRoot = 'C:\\Users\\bellman\\.claude\\plugins\\cache\\omc\\oh-my-claudecode\\4.14.0';
     const newWindowsRoot = 'C:\\Users\\bellman\\.claude\\plugins\\cache\\omc\\oh-my-claudecode\\4.14.1';
 
@@ -530,7 +530,7 @@ describe('auto-update reconciliation', () => {
         return JSON.stringify({
           version: 2,
           plugins: {
-            'oh-my-claudecode@omc': [{ installPath: oldWindowsRoot, version: '4.14.0' }],
+            'oh-my-claudecode@omcx': [{ installPath: oldWindowsRoot, version: '4.14.0' }],
           },
         });
       }
@@ -548,14 +548,14 @@ describe('auto-update reconciliation', () => {
 
     expect(result.errors).toEqual([]);
     const written = String(mockedWriteFileSync.mock.calls.find(([path]) => String(path).includes('installed_plugins.json.tmp-'))?.[1]);
-    expect(JSON.parse(written).plugins['oh-my-claudecode@omc'][0]).toMatchObject({
+    expect(JSON.parse(written).plugins['oh-my-claudecode@omcx'][0]).toMatchObject({
       version: '4.14.1',
       installPath: newWindowsRoot,
     });
   });
 
   it('does not rewrite installed_plugins.json when plugin cache sync reports copy errors', () => {
-    const cacheRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    const cacheRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
 
     mockedExecSync.mockImplementation((command: string) => {
       if (command === 'npm root -g') {
@@ -575,7 +575,7 @@ describe('auto-update reconciliation', () => {
         return JSON.stringify({
           version: 2,
           plugins: {
-            'oh-my-claudecode@omc': [{ installPath: join(cacheRoot, '4.14.0'), version: '4.14.0' }],
+            'oh-my-claudecode@omcx': [{ installPath: join(cacheRoot, '4.14.0'), version: '4.14.0' }],
           },
         });
       }
@@ -583,7 +583,7 @@ describe('auto-update reconciliation', () => {
     });
     mockedExistsSync.mockImplementation((path: Parameters<typeof existsSync>[0]) => {
       const normalized = String(path).replace(/\\/g, '/');
-      return normalized.endsWith('/plugins/cache/omc/oh-my-claudecode')
+      return normalized.endsWith('/plugins/cache/omcx/oh-my-claudecode')
         || normalized.endsWith('/plugins/installed_plugins.json')
         || normalized.startsWith(join(cacheRoot, '4.14.1').replace(/\\/g, '/'))
         || normalized.startsWith('/usr/lib/node_modules/oh-my-claude-sisyphus');
@@ -599,7 +599,7 @@ describe('auto-update reconciliation', () => {
     expect(mockedRenameSync).not.toHaveBeenCalledWith(expect.stringContaining('installed_plugins.json.tmp-'), expect.anything());
   });
   it('does not rewrite installed_plugins.json when the versioned cache is missing runtime-critical files after sync', () => {
-    const cacheRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    const cacheRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
     const versionedCacheRoot = join(cacheRoot, '4.14.1');
 
     mockedExecSync.mockImplementation((command: string) => {
@@ -620,7 +620,7 @@ describe('auto-update reconciliation', () => {
         return JSON.stringify({
           version: 2,
           plugins: {
-            'oh-my-claudecode@omc': [{ installPath: join(cacheRoot, '4.14.0'), version: '4.14.0' }],
+            'oh-my-claudecode@omcx': [{ installPath: join(cacheRoot, '4.14.0'), version: '4.14.0' }],
           },
         });
       }
@@ -634,7 +634,7 @@ describe('auto-update reconciliation', () => {
       if (normalized === `${versionedCacheRoot.replace(/\\/g, '/')}/bridge/claude-md-coordinator.cjs`) {
         return false;
       }
-      return normalized.endsWith('/plugins/cache/omc/oh-my-claudecode')
+      return normalized.endsWith('/plugins/cache/omcx/oh-my-claudecode')
         || normalized.endsWith('/plugins/installed_plugins.json')
         || normalized.startsWith('/usr/lib/node_modules/oh-my-claude-sisyphus')
         || normalized.startsWith(versionedCacheRoot.replace(/\\/g, '/'));
@@ -650,7 +650,7 @@ describe('auto-update reconciliation', () => {
 
   it('syncs the plugin cache directory when cache root exists', () => {
     const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    const cacheRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    const cacheRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
     const versionedCacheRoot = `${cacheRoot}/4.9.0`;
 
     mockedExecSync.mockImplementation((command: string) => {
@@ -731,7 +731,7 @@ describe('auto-update reconciliation', () => {
   });
 
   it('skips plugin cache sync gracefully when cache dir does not exist', () => {
-    const cacheRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    const cacheRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
     mockedExistsSync.mockImplementation((path: Parameters<typeof existsSync>[0]) => {
       const normalized = String(path).replace(/\\/g, '/');
       if (normalized.endsWith('/.claude-plugin/plugin.json')) {
@@ -752,7 +752,7 @@ describe('auto-update reconciliation', () => {
 
   it('handles plugin cache sync errors non-fatally', () => {
     const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const cacheRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    const cacheRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
     const versionedCacheRoot = `${cacheRoot}/4.9.0`;
 
     mockedExecSync.mockImplementation((command: string) => {
@@ -832,7 +832,7 @@ describe('auto-update reconciliation', () => {
     delete process.env.CLAUDECODE_SESSION_ID;
     expect(shouldBlockStandaloneUpdateInCurrentSession()).toBe(false);
 
-    process.env.CLAUDE_PLUGIN_ROOT = '/tmp/.claude/plugins/cache/omc/oh-my-claudecode/4.1.5';
+    process.env.CLAUDE_PLUGIN_ROOT = '/tmp/.claude/plugins/cache/omcx/oh-my-claudecode/4.1.5';
     expect(shouldBlockStandaloneUpdateInCurrentSession()).toBe(false);
 
     process.env.CLAUDE_CODE_ENTRYPOINT = 'hook';
@@ -845,8 +845,8 @@ describe('auto-update reconciliation', () => {
 
   it('dedupes plugin roots and ignores missing targets during sync', () => {
     const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    const activeRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.1.5');
-    const staleRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.1.4');
+    const activeRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.1.5');
+    const staleRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.1.4');
     process.env.CLAUDE_PLUGIN_ROOT = activeRoot;
 
     mockedReadFileSync.mockImplementation((path: Parameters<typeof readFileSync>[0]) => {
@@ -902,8 +902,8 @@ describe('auto-update reconciliation', () => {
   });
 
   it('allows standalone update when CLAUDE_PLUGIN_ROOT is inherited without an active Claude session', async () => {
-    const pluginRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omc', 'oh-my-claudecode', '4.1.5');
-    const cacheRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    const pluginRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omcx', 'oh-my-claudecode', '4.1.5');
+    const cacheRoot = join(CLAUDE_CONFIG_DIR, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
     process.env.OMC_UPDATE_RECONCILE = '1';
     process.env.CLAUDE_PLUGIN_ROOT = pluginRoot;
     delete process.env.CLAUDE_CODE_ENTRYPOINT;
@@ -983,10 +983,10 @@ describe('auto-update reconciliation', () => {
         claudeCodePackageCheckCount += 1;
         return claudeCodePackageCheckCount === 1 || claudeCodePackageCheckCount === 3;
       }
-      if (normalized.endsWith('/plugins/marketplaces/omc')) {
+      if (normalized.endsWith('/plugins/marketplaces/omcx')) {
         return false;
       }
-      if (normalized.endsWith('/plugins/cache/omc/oh-my-claudecode')) {
+      if (normalized.endsWith('/plugins/cache/omcx/oh-my-claudecode')) {
         return false;
       }
       return true;
@@ -1063,10 +1063,10 @@ describe('auto-update reconciliation', () => {
       if (normalized === '/usr/lib/node_modules/@anthropic-ai/claude-code/package.json') {
         return false;
       }
-      if (normalized.endsWith('/plugins/marketplaces/omc')) {
+      if (normalized.endsWith('/plugins/marketplaces/omcx')) {
         return false;
       }
-      if (normalized.endsWith('/plugins/cache/omc/oh-my-claudecode')) {
+      if (normalized.endsWith('/plugins/cache/omcx/oh-my-claudecode')) {
         return false;
       }
       return true;
@@ -1110,10 +1110,10 @@ describe('auto-update reconciliation', () => {
       if (normalized.endsWith('/.claude-plugin/plugin.json')) {
         return true;
       }
-      if (normalized.endsWith('/plugins/marketplaces/omc')) {
+      if (normalized.endsWith('/plugins/marketplaces/omcx')) {
         return false;
       }
-      if (normalized.endsWith('/plugins/cache/omc/oh-my-claudecode')) {
+      if (normalized.endsWith('/plugins/cache/omcx/oh-my-claudecode')) {
         return false;
       }
       return true;
@@ -1164,10 +1164,10 @@ describe('auto-update reconciliation', () => {
       if (normalized === '/usr/lib/node_modules/@anthropic-ai/claude-code/package.json') {
         return true;
       }
-      if (normalized.endsWith('/plugins/marketplaces/omc')) {
+      if (normalized.endsWith('/plugins/marketplaces/omcx')) {
         return false;
       }
-      if (normalized.endsWith('/plugins/cache/omc/oh-my-claudecode')) {
+      if (normalized.endsWith('/plugins/cache/omcx/oh-my-claudecode')) {
         return false;
       }
       return true;
@@ -1244,10 +1244,10 @@ describe('auto-update reconciliation', () => {
       if (normalized === 'C:/Users/bellman/AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/package.json') {
         return false;
       }
-      if (normalized.endsWith('/plugins/marketplaces/omc')) {
+      if (normalized.endsWith('/plugins/marketplaces/omcx')) {
         return false;
       }
-      if (normalized.endsWith('/plugins/cache/omc/oh-my-claudecode')) {
+      if (normalized.endsWith('/plugins/cache/omcx/oh-my-claudecode')) {
         return false;
       }
       return true;
@@ -1312,10 +1312,10 @@ describe('auto-update reconciliation', () => {
       if (normalized === 'C:/Users/bellman/AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/package.json') {
         return false;
       }
-      if (normalized.endsWith('/plugins/marketplaces/omc')) {
+      if (normalized.endsWith('/plugins/marketplaces/omcx')) {
         return false;
       }
-      if (normalized.endsWith('/plugins/cache/omc/oh-my-claudecode')) {
+      if (normalized.endsWith('/plugins/cache/omcx/oh-my-claudecode')) {
         return false;
       }
       return true;
@@ -1376,10 +1376,10 @@ describe('auto-update reconciliation', () => {
         claudeCodePackageCheckCount += 1;
         return claudeCodePackageCheckCount === 1 || claudeCodePackageCheckCount === 3;
       }
-      if (normalized.endsWith('/plugins/marketplaces/omc')) {
+      if (normalized.endsWith('/plugins/marketplaces/omcx')) {
         return false;
       }
-      if (normalized.endsWith('/plugins/cache/omc/oh-my-claudecode')) {
+      if (normalized.endsWith('/plugins/cache/omcx/oh-my-claudecode')) {
         return false;
       }
       return true;
@@ -1546,7 +1546,7 @@ describe('auto-update reconciliation', () => {
     expect(result.success).toBe(true);
     expect(mockedExecFileSync).toHaveBeenCalledWith(
       'git',
-      ['-C', expect.stringContaining('/plugins/marketplaces/omc'), 'status', '--porcelain', '--untracked-files=normal'],
+      ['-C', expect.stringContaining('/plugins/marketplaces/omcx'), 'status', '--porcelain', '--untracked-files=normal'],
       expect.any(Object)
     );
     expect(mockedExecFileSync).not.toHaveBeenCalledWith(
@@ -1609,7 +1609,7 @@ describe('auto-update reconciliation', () => {
     expect(result.success).toBe(true);
     expect(mockedExecFileSync).toHaveBeenCalledWith(
       'git',
-      ['-C', expect.stringContaining('/plugins/marketplaces/omc'), 'rev-list', '--left-right', '--count', 'HEAD...origin/main'],
+      ['-C', expect.stringContaining('/plugins/marketplaces/omcx'), 'rev-list', '--left-right', '--count', 'HEAD...origin/main'],
       expect.any(Object)
     );
     expect(mockedExecFileSync).not.toHaveBeenCalledWith(
@@ -1667,7 +1667,7 @@ describe('auto-update reconciliation', () => {
     expect(result.success).toBe(true);
     expect(mockedExecFileSync).toHaveBeenCalledWith(
       'git',
-      ['-C', expect.stringContaining('/plugins/marketplaces/omc'), 'merge', '--ff-only', 'origin/main'],
+      ['-C', expect.stringContaining('/plugins/marketplaces/omcx'), 'merge', '--ff-only', 'origin/main'],
       expect.any(Object)
     );
     expect(mockedExecFileSync).not.toHaveBeenCalledWith(
@@ -1690,7 +1690,7 @@ describe('auto-update reconciliation', () => {
       if (normalized === 'C:/Users/bellman/AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/package.json') {
         return false;
       }
-      if (normalized.endsWith('/plugins/marketplaces/omc')) {
+      if (normalized.endsWith('/plugins/marketplaces/omcx')) {
         return false;
       }
       return true;
@@ -1760,7 +1760,7 @@ describe('auto-update reconciliation', () => {
       if (normalized.endsWith('/.claude-plugin/plugin.json')) {
         return true;
       }
-      if (normalized.endsWith('/plugins/marketplaces/omc')) {
+      if (normalized.endsWith('/plugins/marketplaces/omcx')) {
         return false;
       }
       return true;

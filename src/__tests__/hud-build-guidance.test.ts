@@ -19,7 +19,7 @@ describe('HUD build/load guidance', () => {
     // Both install paths now read from this single source of truth
     // (plan: binary-weaving-mountain).
     const content = readFileSync(join(root, 'scripts', 'lib', 'hud-wrapper-template.txt'), 'utf-8');
-    expect(content).toContain('join(configDir, "plugins", "marketplaces", "omc", "dist/hud/index.js")');
+    expect(content).toContain('join(configDir, "plugins", "marketplaces", "omcx", "dist/hud/index.js")');
     expect(content).toContain('pathToFileURL(marketplaceHudPath).href');
     expect(content).toContain('"oh-my-claude-sisyphus/dist/hud/index.js"');
     expect(content).toContain('"oh-my-claudecode/dist/hud/index.js"');
@@ -30,7 +30,7 @@ describe('HUD build/load guidance', () => {
   it('shared HUD wrapper template keeps latest-installed fallback context and marketplace resolution', () => {
     const content = readFileSync(join(root, 'scripts', 'lib', 'hud-wrapper-template.txt'), 'utf-8');
     expect(content).toContain('const latestInstalledVersion = sortedVersions[0];');
-    expect(content).toContain('join(configDir, "plugins", "marketplaces", "omc", "dist/hud/index.js")');
+    expect(content).toContain('join(configDir, "plugins", "marketplaces", "omcx", "dist/hud/index.js")');
     expect(content).toContain('pathToFileURL(marketplaceHudPath).href');
     expect(content).toContain('"oh-my-claude-sisyphus/dist/hud/index.js"');
     expect(content).toContain('"oh-my-claudecode/dist/hud/index.js"');

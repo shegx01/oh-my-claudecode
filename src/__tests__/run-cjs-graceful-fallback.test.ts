@@ -19,7 +19,7 @@ describe('run.cjs — graceful fallback for stale plugin paths', () => {
 
   beforeEach(() => {
     tmpDir = mkdtempSync(join(tmpdir(), 'omc-run-cjs-test-'));
-    fakeCacheBase = join(tmpDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    fakeCacheBase = join(tmpDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
     mkdirSync(fakeCacheBase, { recursive: true });
   });
 

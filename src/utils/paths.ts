@@ -10,6 +10,7 @@ import { join } from 'path';
 import { existsSync, readFileSync, readdirSync, statSync, unlinkSync, rmSync, symlinkSync } from 'fs';
 import { homedir } from 'os';
 import { getClaudeConfigDir } from './config-dir.js';
+import { OMC_PLUGIN_MARKETPLACE_SLUG, OMC_PLUGIN_PACKAGE_NAME } from '../lib/paths.js';
 
 /**
  * Convert a path to use forward slashes (for JSON/config files)
@@ -170,10 +171,10 @@ export function getGlobalOmcStateCandidates(...segments: string[]): string[] {
  * Get the plugin cache base directory for oh-my-claudecode.
  * This is the directory containing version subdirectories.
  *
- * Structure: <configDir>/plugins/cache/omc/oh-my-claudecode/
+ * Structure: <configDir>/plugins/cache/omcx/oh-my-claudecode/
  */
 export function getPluginCacheBase(): string {
-  return join(getClaudeConfigDir(), 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+  return join(getClaudeConfigDir(), 'plugins', 'cache', OMC_PLUGIN_MARKETPLACE_SLUG, OMC_PLUGIN_PACKAGE_NAME);
 }
 
 /**

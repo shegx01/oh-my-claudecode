@@ -115,7 +115,7 @@ async function main() {
   // 2. Plugin cache (for production installs)
   // Respect CLAUDE_CONFIG_DIR so installs under a custom config dir are found
   const configDir = getClaudeConfigDir();
-  const pluginCacheBase = join(configDir, "plugins", "cache", "omc", "oh-my-claudecode");
+  const pluginCacheBase = join(configDir, "plugins", "cache", "omcx", "oh-my-claudecode");
   if (existsSync(pluginCacheBase)) {
     try {
       // Filter to strict semver dir names only — guards against accidental
@@ -197,7 +197,7 @@ async function main() {
   }
 
   // 3. Marketplace clone (for marketplace installs without a populated cache)
-  const marketplaceHudPath = join(configDir, "plugins", "marketplaces", "omc", "dist/hud/index.js");
+  const marketplaceHudPath = join(configDir, "plugins", "marketplaces", "omcx", "dist/hud/index.js");
   if (existsSync(marketplaceHudPath)) {
     try {
       await import(pathToFileURL(marketplaceHudPath).href);

@@ -582,7 +582,7 @@ function extractOmcVersion(content) {
 }
 
 function getPluginCacheBase() {
-  return join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+  return join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
 }
 
 function isPathInsideOrEqual(parent, child) {
@@ -598,7 +598,7 @@ function isManagedPluginCacheRoot(pluginRoot) {
   // A stale root can come from an older config-dir location; the canonical
   // cache path shape still proves it is an OMC managed cache version.
   const unixRoot = normalizedRoot.replace(/\\/g, '/');
-  return /\/plugins\/cache\/omc\/oh-my-claudecode\/\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$/.test(unixRoot);
+  return /\/plugins\/cache\/omcx\/oh-my-claudecode\/\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$/.test(unixRoot);
 }
 
 function getLatestPluginCacheVersion() {
@@ -616,7 +616,7 @@ function getLatestPluginCacheVersion() {
 
 function getMarketplaceCloneVersion() {
   try {
-    const marketplaceRoot = join(configDir, 'plugins', 'marketplaces', 'omc');
+    const marketplaceRoot = join(configDir, 'plugins', 'marketplaces', 'omcx');
     if (!existsSync(marketplaceRoot)) return null;
 
     const marketplaceManifest = readJsonFile(join(marketplaceRoot, '.claude-plugin', 'marketplace.json'));
@@ -850,7 +850,7 @@ async function checkHudInstallation(retryCount = 0) {
 
       // If OMC HUD wrapper is configured, ensure at least one plugin cache version is built.
       if (statusLineCommand?.includes('omc-hud')) {
-        const pluginCacheBase = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+        const pluginCacheBase = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
         if (existsSync(pluginCacheBase)) {
           const versions = readdirSync(pluginCacheBase)
             .filter(version => !version.startsWith('.'))
@@ -1117,7 +1117,7 @@ ${cleanContent}
     // This prevents "Cannot find module" errors for sessions started before a
     // plugin update whose CLAUDE_PLUGIN_ROOT still points to the old version.
     try {
-      const cacheBase = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+      const cacheBase = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
       let versions = [];
       if (existsSync(cacheBase)) {
         versions = readdirSync(cacheBase)

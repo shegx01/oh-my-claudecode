@@ -221,7 +221,7 @@ describe('setup-claude-md.sh committed plugin shipping surface (issue #3476)', (
     const root = mkdtempSync(join(tmpdir(), 'omc-committed-root-coherence-'));
     tempRoots.push(root);
 
-    const cacheBase = join(root, '.claude', 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    const cacheBase = join(root, '.claude', 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
     const staleRoot = join(cacheBase, '0.0.1');
     const activeRoot = join(cacheBase, '0.0.2');
     const projectRoot = join(root, 'project');
@@ -1038,7 +1038,7 @@ describe('setup-claude-md.sh stale CLAUDE_PLUGIN_ROOT resolution', () => {
     const root = mkdtempSync(join(tmpdir(), 'omc-stale-invalid-newer-cache-'));
     tempRoots.push(root);
 
-    const cacheBase = join(root, '.claude', 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    const cacheBase = join(root, '.claude', 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
     const oldVersion = join(cacheBase, '4.8.2');
     const newerInvalid = join(cacheBase, '4.9.0');
     const projectRoot = join(root, 'project');
@@ -1062,7 +1062,7 @@ describe('setup-claude-md.sh stale CLAUDE_PLUGIN_ROOT resolution', () => {
     writeFileSync(
       join(homeRoot, '.claude', 'plugins', 'installed_plugins.json'),
       JSON.stringify({
-        'oh-my-claudecode@omc': [
+        'oh-my-claudecode@omcx': [
           {
             installPath: oldVersion,
             version: '4.8.2',
@@ -1096,7 +1096,7 @@ describe('setup-claude-md.sh stale CLAUDE_PLUGIN_ROOT resolution', () => {
     const root = mkdtempSync(join(tmpdir(), 'omc-stale-ignore-non-semver-'));
     tempRoots.push(root);
 
-    const cacheBase = join(root, '.claude', 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    const cacheBase = join(root, '.claude', 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
     const oldVersion = join(cacheBase, '4.8.2');
     const newVersion = join(cacheBase, '4.9.0');
     const suffixedInvalid = join(cacheBase, '4.10.0.tmp');
@@ -1146,7 +1146,7 @@ describe('setup-claude-md.sh stale CLAUDE_PLUGIN_ROOT resolution', () => {
     const root = mkdtempSync(join(tmpdir(), 'omc-stale-json-old-version-'));
     tempRoots.push(root);
 
-    const cacheBase = join(root, '.claude', 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    const cacheBase = join(root, '.claude', 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
     const oldVersion = join(cacheBase, '4.8.2');
     const newVersion = join(cacheBase, '4.9.0');
     const projectRoot = join(root, 'project');
@@ -1187,7 +1187,7 @@ describe('setup-claude-md.sh stale CLAUDE_PLUGIN_ROOT resolution', () => {
     writeFileSync(
       join(homeRoot, '.claude', 'plugins', 'installed_plugins.json'),
       JSON.stringify({
-        'oh-my-claudecode@omc': [
+        'oh-my-claudecode@omcx': [
           {
             installPath: oldVersion,
             version: '4.8.2',
@@ -1231,7 +1231,7 @@ describe('setup-claude-md.sh stale CLAUDE_PLUGIN_ROOT resolution', () => {
     const root = mkdtempSync(join(tmpdir(), 'omc-stale-root-'));
     tempRoots.push(root);
 
-    const cacheBase = join(root, '.claude', 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    const cacheBase = join(root, '.claude', 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
     const oldVersion = join(cacheBase, '4.8.2');
     const newVersion = join(cacheBase, '4.9.0');
     const projectRoot = join(root, 'project');
@@ -1263,7 +1263,7 @@ describe('setup-claude-md.sh stale CLAUDE_PLUGIN_ROOT resolution', () => {
     writeFileSync(
       join(homeRoot, '.claude', 'plugins', 'installed_plugins.json'),
       JSON.stringify({
-        'oh-my-claudecode@omc': [
+        'oh-my-claudecode@omcx': [
           {
             installPath: newVersion,
             version: '4.9.0',
@@ -1308,7 +1308,7 @@ describe('setup-claude-md.sh stale CLAUDE_PLUGIN_ROOT resolution', () => {
     const root = mkdtempSync(join(tmpdir(), 'omc-stale-wrapped-root-'));
     tempRoots.push(root);
 
-    const cacheBase = join(root, '.claude', 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    const cacheBase = join(root, '.claude', 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
     const oldVersion = join(cacheBase, '4.8.2');
     const newVersion = join(cacheBase, '4.9.0');
     const projectRoot = join(root, 'project');
@@ -1338,7 +1338,7 @@ describe('setup-claude-md.sh stale CLAUDE_PLUGIN_ROOT resolution', () => {
       join(homeRoot, '.claude', 'plugins', 'installed_plugins.json'),
       JSON.stringify({
         plugins: {
-          'oh-my-claudecode@omc': [
+          'oh-my-claudecode@omcx': [
             {
               installPath: newVersion,
               version: '4.9.0',
@@ -1381,7 +1381,7 @@ describe('setup-claude-md.sh stale CLAUDE_PLUGIN_ROOT resolution', () => {
     const root = mkdtempSync(join(tmpdir(), 'omc-stale-fallback-'));
     tempRoots.push(root);
 
-    const cacheBase = join(root, '.claude', 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+    const cacheBase = join(root, '.claude', 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
     const oldVersion = join(cacheBase, '4.8.2');
     const newVersion = join(cacheBase, '4.9.0');
     const projectRoot = join(root, 'project');

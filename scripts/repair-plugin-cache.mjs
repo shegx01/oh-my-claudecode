@@ -176,7 +176,7 @@ function replaceWithSymlink(versionPath, latestRoot) {
 
 export function repairPluginCacheReferences() {
   const configDir = getClaudeConfigDir();
-  const cacheBase = join(configDir, 'plugins', 'cache', 'omc', 'oh-my-claudecode');
+  const cacheBase = join(configDir, 'plugins', 'cache', 'omcx', 'oh-my-claudecode');
   const latestRoot = latestValidCacheRoot(cacheBase);
   const result = { latestRoot, registryUpdated: false, hooksPatched: false, symlinked: 0, errors: [] };
 

@@ -135,7 +135,7 @@ describe('plugin skill context budget gate (issues #2943, #2986)', () => {
     const tempRoot = mkdtempSync(join(tmpdir(), 'omc-plugin-commands-cache-'));
     try {
       const sourceRoot = join(tempRoot, 'source');
-      const targetRoot = join(tempRoot, 'cache', 'omc', 'oh-my-claudecode', '4.14.1');
+      const targetRoot = join(tempRoot, 'cache', 'omcx', 'oh-my-claudecode', '4.14.1');
       mkdirSync(join(sourceRoot, '.claude-plugin'), { recursive: true });
       mkdirSync(join(sourceRoot, 'commands'), { recursive: true });
       mkdirSync(join(sourceRoot, 'dist', 'hooks'), { recursive: true });

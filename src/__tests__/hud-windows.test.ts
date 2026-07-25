@@ -158,13 +158,13 @@ describe('HUD Windows Compatibility', () => {
       const cachePath = getPluginCacheBase();
       // Should contain the expected path segments regardless of separator
       const normalized = cachePath.replace(/\\/g, '/');
-      expect(normalized).toContain('plugins/cache/omc/oh-my-claudecode');
+      expect(normalized).toContain('plugins/cache/omcx/oh-my-claudecode');
     });
 
     it('getPluginCacheBase should use platform-native separators', () => {
       const cachePath = getPluginCacheBase();
       // On Windows: backslashes, on Unix: forward slashes
-      expect(cachePath).toContain(`plugins${sep}cache${sep}omc${sep}oh-my-claudecode`);
+      expect(cachePath).toContain(`plugins${sep}cache${sep}omcx${sep}oh-my-claudecode`);
     });
 
     it('getPluginCacheBase should be under claude config dir', () => {
@@ -198,7 +198,7 @@ describe('HUD Windows Compatibility', () => {
       // Should use node -e for cross-platform compatibility
       expect(content).toContain("node -e");
       // Should use path.join for constructing paths
-      expect(content).toContain("p.join(d,'plugins','cache','omc','oh-my-claudecode')");
+      expect(content).toContain("p.join(d,'plugins','cache','omcx','oh-my-claudecode')");
       expect(content).not.toContain('ls ~/.claude/CLAUDE-*.md');
       expect(content).toContain("find \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\" -maxdepth 1 -type f -name 'CLAUDE-*.md' -print 2>/dev/null");
     });
