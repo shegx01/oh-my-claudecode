@@ -109,13 +109,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Yeachan-Heo/oh-my-claudecode.git"
+    "url": "git+https://github.com/shegx01/oh-my-claudecode.git"
   },
-  "homepage": "https://github.com/Yeachan-Heo/oh-my-claudecode#readme",
+  "homepage": "https://github.com/shegx01/oh-my-claudecode#readme",
   "bugs": {
-    "url": "https://github.com/Yeachan-Heo/oh-my-claudecode/issues"
+    "url": "https://github.com/shegx01/oh-my-claudecode/issues"
   },
-  "author": "Yeachan Heo",
+  "author": "Shegx01 <shegx01@gmail.com>",
   "license": "MIT",
   "keywords": [
     "claude",

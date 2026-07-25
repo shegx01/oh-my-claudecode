@@ -3,10 +3,11 @@
   "version": "4.15.7",
   "description": "Multi-agent orchestration system for Claude Code",
   "author": {
-    "name": "oh-my-claudecode contributors"
+    "name": "Shegx01",
+    "email": "shegx01@gmail.com"
   },
-  "repository": "https://github.com/Yeachan-Heo/oh-my-claudecode",
-  "homepage": "https://github.com/Yeachan-Heo/oh-my-claudecode",
+  "repository": "https://github.com/shegx01/oh-my-claudecode",
+  "homepage": "https://github.com/shegx01/oh-my-claudecode",
   "license": "MIT",
   "keywords": [
     "claude-code",
