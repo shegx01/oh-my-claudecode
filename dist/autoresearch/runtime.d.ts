@@ -24,6 +24,7 @@ export interface AutoresearchEvaluationRecord {
     status: 'pass' | 'fail' | 'error';
     pass?: boolean;
     score?: number;
+    quality_gates?: Record<string, boolean>;
     exit_code?: number | null;
     stdout?: string;
     stderr?: string;
@@ -117,6 +118,8 @@ export declare function assertResetSafeWorktree(worktreePath: string, allowedDir
  */
 export declare function assertModeStartAllowed(mode: ExecutionMode, projectRoot: string): Promise<void>;
 export declare function countTrailingAutoresearchNoops(ledgerFile: string): Promise<number>;
+export declare const AUTORESEARCH_PLATEAU_K = 3;
+export declare function countTrailingIterationsWithoutBestStateImprovement(ledgerFile: string): Promise<number>;
 export declare function runAutoresearchEvaluator(contract: AutoresearchMissionContract, worktreePath: string, ledgerFile?: string, latestEvaluatorFile?: string): Promise<AutoresearchEvaluationRecord>;
 export declare function decideAutoresearchOutcome(manifest: Pick<AutoresearchRunManifest, 'keep_policy' | 'last_kept_score'>, candidate: AutoresearchCandidateArtifact, evaluation: AutoresearchEvaluationRecord | null): AutoresearchDecision;
 export declare function buildAutoresearchInstructions(contract: AutoresearchMissionContract, context: {

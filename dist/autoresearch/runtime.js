@@ -5,7 +5,7 @@ import { dirname, join, resolve } from 'path';
 import { getOmcRoot } from '../lib/worktree-paths.js';
 import { readModeState, writeModeState, } from '../lib/mode-state-io.js';
 import { isModeActiveInAnySession } from '../hooks/mode-registry/index.js';
-import { parseEvaluatorResult, } from './contracts.js';
+import { failedQualityGates, parseEvaluatorResult, } from './contracts.js';
 const AUTORESEARCH_RESULTS_HEADER = 'iteration\tcommit\tpass\tscore\tstatus\tdescription\n';
 const AUTORESEARCH_WORKTREE_EXCLUDES = ['results.tsv', 'run.log', 'node_modules', '.omc/'];
 // Exclusive modes that cannot run concurrently with autoresearch
@@ -340,6 +340,22 @@ export async function countTrailingAutoresearchNoops(ledgerFile) {
     }
     return count;
 }
+export const AUTORESEARCH_PLATEAU_K = 3;
+export async function countTrailingIterationsWithoutBestStateImprovement(ledgerFile) {
+    const entries = await readAutoresearchLedgerEntries(ledgerFile);
+    let count = 0;
+    for (let index = entries.length - 1; index >= 0; index -= 1) {
+        const entry = entries[index];
+        // A baseline entry is the boundary of the run's history.
+        if (!entry || entry.kind !== 'iteration')
+            break;
+        // A keep is the only decision that improves best state; stop resetting there.
+        if (entry.decision === 'keep')
+            break;
+        count += 1;
+    }
+    return count;
+}
 function formatAutoresearchInstructionSummary(entries, maxEntries = 3) {
     return entries
         .slice(-maxEntries)
@@ -394,6 +410,7 @@ export async function runAutoresearchEvaluator(contract, worktreePath, ledgerFil
                 status: parsed.pass ? 'pass' : 'fail',
                 pass: parsed.pass,
                 ...(parsed.score !== undefined ? { score: parsed.score } : {}),
+                ...(parsed.qualityGates !== undefined ? { quality_gates: parsed.qualityGates } : {}),
                 exit_code: result.status,
                 stdout,
                 stderr,
@@ -481,6 +498,18 @@ export function decideAutoresearchOutcome(manifest, candidate, evaluation) {
             evaluator: evaluation,
             notes: ['candidate discarded because evaluator pass=false'],
         };
+    }
+    if (manifest.keep_policy === 'quality_gated') {
+        const gateFailures = failedQualityGates(evaluation.quality_gates);
+        if (gateFailures.length > 0) {
+            return {
+                decision: 'discard',
+                decisionReason: `quality gate(s) failed: ${gateFailures.join(', ')}`,
+                keep: false,
+                evaluator: evaluation,
+                notes: ['candidate discarded and rolled back because a quality gate regressed or failed'],
+            };
+        }
     }
     if (manifest.keep_policy === 'pass_only') {
         return {
@@ -586,6 +615,7 @@ export function buildAutoresearchInstructions(contract, context) {
         '- format: json',
         '- required output field: pass (boolean)',
         '- optional output field: score (number)',
+        '- optional output field: qualityGates (object of string->boolean; required to all be true when keep_policy is quality_gated)',
         '',
         'Mission content:',
         '```md',
@@ -1190,6 +1220,7 @@ export async function processAutoresearchCandidate(contract, manifest, projectRo
     });
     await writeRunManifest(manifest);
     await writeInstructionsFile(contract, manifest);
+    const plateauCount = await countTrailingIterationsWithoutBestStateImprovement(manifest.ledger_file);
     updateAutoresearchMode({
         current_phase: 'running',
         iteration: manifest.iteration,
@@ -1199,6 +1230,8 @@ export async function processAutoresearchCandidate(contract, manifest, projectRo
         latest_evaluator_pass: evaluation.pass,
         latest_evaluator_score: evaluation.score,
         latest_evaluator_ran_at: evaluation.ran_at,
+        plateau_count: plateauCount,
+        plateau_limit: AUTORESEARCH_PLATEAU_K,
         decision_log_file: artifactLayout.decisionLogFile,
     }, projectRoot);
     return decision.decision;

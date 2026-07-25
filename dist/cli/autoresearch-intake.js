@@ -48,7 +48,11 @@ function parseLaunchReadinessSection(section) {
     return { launchReady, blockedReasons };
 }
 function normalizeKeepPolicy(raw) {
-    return raw.trim().toLowerCase() === 'pass_only' ? 'pass_only' : 'score_improvement';
+    const normalized = raw.trim().toLowerCase();
+    if (normalized === 'pass_only' || normalized === 'quality_gated') {
+        return normalized;
+    }
+    return 'score_improvement';
 }
 function buildArtifactDir(repoRoot, slug) {
     return join(getOmcRoot(repoRoot), 'specs', `${AUTORESEARCH_ARTIFACT_DIR_PREFIX}${slug}`);
