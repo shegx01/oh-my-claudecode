@@ -3,7 +3,9 @@ import { existsSync, realpathSync } from 'fs';
 import { readFile } from 'fs/promises';
 import { basename, join, relative, resolve } from 'path';
 
-export type AutoresearchKeepPolicy = 'score_improvement' | 'pass_only';
+export type AutoresearchKeepPolicy = 'score_improvement' | 'pass_only' | 'quality_gated';
+
+export type AutoresearchQualityGates = Record<string, boolean>;
 
 export interface AutoresearchEvaluatorContract {
   command: string;
@@ -20,6 +22,7 @@ export interface ParsedSandboxContract {
 export interface AutoresearchEvaluatorResult {
   pass: boolean;
   score?: number;
+  qualityGates?: AutoresearchQualityGates;
 }
 
 export interface AutoresearchMissionContract {
@@ -134,7 +137,8 @@ function parseKeepPolicy(raw: unknown): AutoresearchKeepPolicy | undefined {
   if (!normalized) return undefined;
   if (normalized === 'pass_only') return 'pass_only';
   if (normalized === 'score_improvement') return 'score_improvement';
-  throw contractError('sandbox.md frontmatter evaluator.keep_policy must be one of: score_improvement, pass_only.');
+  if (normalized === 'quality_gated') return 'quality_gated';
+  throw contractError('sandbox.md frontmatter evaluator.keep_policy must be one of: score_improvement, pass_only, quality_gated.');
 }
 
 export function parseSandboxContract(content: string): ParsedSandboxContract {
@@ -196,9 +200,28 @@ export function parseEvaluatorResult(raw: string): AutoresearchEvaluatorResult {
     throw contractError('Evaluator output score must be numeric when provided.');
   }
 
-  return result.score === undefined
-    ? { pass: result.pass }
-    : { pass: result.pass, score: result.score };
+  let qualityGates: AutoresearchQualityGates | undefined;
+  if (result.qualityGates !== undefined) {
+    const rawGates = result.qualityGates;
+    if (!rawGates || typeof rawGates !== 'object' || Array.isArray(rawGates)
+      || Object.values(rawGates as Record<string, unknown>).some((value) => typeof value !== 'boolean')) {
+      throw contractError('Evaluator output qualityGates must be an object of string->boolean when provided.');
+    }
+    qualityGates = rawGates as AutoresearchQualityGates;
+  }
+
+  return {
+    pass: result.pass,
+    ...(result.score === undefined ? {} : { score: result.score }),
+    ...(qualityGates === undefined ? {} : { qualityGates }),
+  };
+}
+
+export function failedQualityGates(gates: AutoresearchQualityGates | undefined): string[] {
+  if (!gates) return [];
+  return Object.entries(gates)
+    .filter(([, value]) => value === false)
+    .map(([name]) => name);
 }
 
 export async function loadAutoresearchMissionContract(missionDirArg: string): Promise<AutoresearchMissionContract> {

@@ -25,9 +25,11 @@ Autoresearch is a stateful skill for bounded, evaluator-driven iterative improve
 <Contract>
 - Single-mission only in v1
 - Mission setup/evaluator generation stays in `deep-interview --autoresearch`
-- Evaluator output must be structured JSON with required boolean `pass` and optional numeric `score`
+- Evaluator output must be structured JSON with a required boolean `pass` and an optional numeric `score`. When the mission opts into `keep_policy: quality_gated`, the evaluator must ALSO emit a `qualityGates` object (string → boolean); other keep policies ignore it and stay backward-compatible
+- A functional-only evaluator is insufficient: iterating a loop against `pass` alone hill-climbs into passing-tests-via-accreting-hacks. Under `quality_gated`, the evaluator command itself asserts the gates — lint/type clean, complexity and size budgets, and **conformance to the mission's Design Decision Ledger + architectural invariants** (captured during `deep-interview --autoresearch`) — and reports each as a boolean in `qualityGates`. Each ledger constraint and each invariant maps to an **individually-named** gate (e.g. `result_type_used`, `no_switch_dispatch`, `domain_not_importing_infra`), never a single aggregate `ledger_conformance` a stub can rubber-stamp. The constraints are baked into the evaluator command; there is no separate frontmatter field for them. An iteration is kept only when `pass` is true AND every quality gate holds
+- Best-state is the last kept commit. Under `quality_gated`, any candidate that fails a gate is discarded and the worktree is reset to the last kept commit (`decideAutoresearchOutcome` → `resetToLastKeptCommit`), so a gate regression can never be promoted; the run does not end in a worse gated state than the last kept one
 - Non-passing iterations do **not** stop the run
-- Stop conditions are explicit and bounded, with max-runtime as the primary strict stop hook
+- Stop conditions are explicit and bounded, with max-runtime as the primary strict stop hook. The supervisor may also stop early on a scored plateau — no best-state improvement over K consecutive kept-or-evaluated iterations (default K = 3) — by inspecting the iteration ledger; this is a supervisor-level stop, not a hard runtime timer
 </Contract>
 
 <Required_Artifacts>
@@ -64,11 +66,13 @@ Reuse existing runtime artifacts when available rather than duplicating them unn
 3. On every iteration:
    - run exactly one experiment/change cycle
    - run the evaluator
-   - persist machine-readable evaluation JSON
-   - append a human-readable markdown decision log entry
+   - persist machine-readable evaluation JSON (including the `qualityGates` results)
+   - under `quality_gated`: keep the iteration only if `pass` is true, all quality gates hold, and `score` improves on the last kept score; if any gate fails the runtime discards the candidate and resets to the last kept commit before continuing
+   - append a human-readable markdown decision log entry recording the choice made and whether it conformed to the mission's Design Decision Ledger
    - continue even when evaluation does not pass
 4. Stop when:
    - max-runtime ceiling is reached
+   - the supervisor detects a scored plateau (no best-state improvement over K consecutive iterations; default K = 3) by inspecting the ledger
    - user explicitly cancels
    - another explicit terminal condition is recorded by the runtime
 </Workflow>

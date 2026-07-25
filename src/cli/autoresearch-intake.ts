@@ -101,7 +101,11 @@ function parseLaunchReadinessSection(section: string): { launchReady: boolean; b
 }
 
 function normalizeKeepPolicy(raw: string): AutoresearchKeepPolicy {
-  return raw.trim().toLowerCase() === 'pass_only' ? 'pass_only' : 'score_improvement';
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === 'pass_only' || normalized === 'quality_gated') {
+    return normalized;
+  }
+  return 'score_improvement';
 }
 
 function buildArtifactDir(repoRoot: string, slug: string): string {

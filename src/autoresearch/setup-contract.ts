@@ -38,10 +38,10 @@ function parseKeepPolicy(raw: unknown): AutoresearchKeepPolicy | undefined {
     throw contractError('setup handoff keepPolicy must be a string when provided.');
   }
   const normalized = raw.trim().toLowerCase();
-  if (normalized === 'score_improvement' || normalized === 'pass_only') {
+  if (normalized === 'score_improvement' || normalized === 'pass_only' || normalized === 'quality_gated') {
     return normalized;
   }
-  throw contractError('setup handoff keepPolicy must be one of: score_improvement, pass_only.');
+  throw contractError('setup handoff keepPolicy must be one of: score_improvement, pass_only, quality_gated.');
 }
 
 export function buildSetupSandboxContent(

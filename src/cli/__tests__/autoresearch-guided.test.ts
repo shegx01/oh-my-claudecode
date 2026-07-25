@@ -182,6 +182,18 @@ describe('parseInitArgs', () => {
     expect(result.slug).toBe('my-slug');
   });
 
+  it('accepts quality_gated as a keep policy', () => {
+    expect(parseInitArgs(['--keep-policy', 'quality_gated']).keepPolicy).toBe('quality_gated');
+    expect(parseInitArgs(['--keep-policy=quality_gated']).keepPolicy).toBe('quality_gated');
+  });
+
+  it('rejects an unknown keep policy', () => {
+    expect(() => parseInitArgs(['--keep-policy', 'maybe']))
+      .toThrow(/keep-policy must be one of: score_improvement, pass_only, quality_gated/i);
+    expect(() => parseInitArgs(['--keep-policy=maybe']))
+      .toThrow(/keep-policy must be one of: score_improvement, pass_only, quality_gated/i);
+  });
+
   it('parses all flags with = syntax', () => {
     const result = parseInitArgs([
       '--topic=my topic',

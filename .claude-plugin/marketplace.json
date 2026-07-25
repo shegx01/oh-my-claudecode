@@ -10,7 +10,7 @@
     {
       "name": "oh-my-claudecode",
       "description": "Claude Code native multi-agent orchestration with intelligent model routing, 20 specialized agents, and 42 powerful skills. Zero learning curve. Maximum power.",
-      "version": "4.15.8",
+      "version": "4.16.0",
       "author": {
         "name": "Shegx01",
         "email": "shegx01@gmail.com"
@@ -27,5 +27,5 @@
       ]
     }
   ],
-  "version": "4.15.8"
+  "version": "4.16.0"
 }

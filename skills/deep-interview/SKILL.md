@@ -50,6 +50,11 @@ Inspired by the [Ouroboros project](https://github.com/Q00/ouroboros) which demo
 - Allow early exit with a clear warning if ambiguity is still high
 - Persist interview state for resume across session interruptions
 - Challenge agents activate at specific round thresholds to shift perspective
+- Before scoring can be considered complete, discover the existing architecture and system behavior (via `explore` + `architect` agents) and seed a Design Decision Ledger of the material design/behavioral choice-points the idea implies
+- No silent defaults: every material design choice-point (e.g. dispatch via switch/case vs polymorphism/Protocol, error model, sync vs async, persistence shape, module boundary, state ownership) must resolve to either `conformed` (matches a cited existing convention) or `decided` (an explicit choice recorded with a rationale) — never left implicit for the executor to guess. "Not stated" is an `undecided` decision, not the absence of one
+- Capture system behavior, not just structure: for each active component record runtime behavior, state transitions, side effects, sequencing/interactions, and failure/edge behavior
+- Do not proceed to execution until ambiguity ≤ the resolved threshold AND the Design Decision Ledger has zero `undecided` material entries AND the spec contains complete Architecture & Integration and System Behavior sections. Terminal statuses that count as resolved: `conformed`, `decided`, `flagged_debt`; `stamped_risk` counts as resolved ONLY on a `BELOW_THRESHOLD_EARLY_EXIT` spec; `pending_consensus` counts as resolved but forces the omc-plan-consensus bridge in Phase 5
+- **Ledger-gate precedence** at the round hard cap or a user-forced early exit: this is the ONLY path that may proceed with the ledger not fully resolved, and even then there are no silent defaults. The `architect` auto-resolves **at most `A_max = 3`** architect-owned (pure-engineering) `undecided` entries — the highest-blast-radius ones first (most files touched, tie-break by id) — to `decided` or `flagged_debt` with a full recorded rationale (no user round consumed). Every entry still `undecided` after that — architect-owned excess *and* all user-owned trade-offs — is flipped to the terminal status **`stamped_risk`** (never left `undecided`) and listed in the spec as an explicit open risk, with the spec stamped `Status: BELOW_THRESHOLD_EARLY_EXIT`. `stamped_risk` is a resolved-for-gate-purposes terminal state that satisfies the completion gate and Phase 4.5 **only** on a `BELOW_THRESHOLD_EARLY_EXIT` spec. This rule overrides the generic "proceed with current clarity" wording of the round-20 cap, the `0.9+` skip, and the early-exit hatches
 </Execution_Policy>
 
 <Autoresearch_Mode>
@@ -57,7 +62,9 @@ When arguments include `--autoresearch`, Deep Interview becomes the zero-learnin
 
 - If no usable mission brief is present yet, start by asking: **"What should autoresearch improve or prove for this repo?"**
 - After the mission is clear, collect an evaluator command. If the user leaves it blank, infer one only when repo evidence is strong; otherwise keep interviewing until an evaluator is explicit enough to launch safely.
-- Keep the usual one-question-per-round rule, but treat **mission clarity** and **evaluator clarity** as hard readiness gates in addition to the normal ambiguity threshold.
+- Keep the usual one-question-per-round rule, but treat **mission clarity**, **evaluator clarity**, and a resolved **Design Decision Ledger** as hard readiness gates in addition to the normal ambiguity threshold.
+- **Branch-local ledger procedure** (this branch skips Phase 2's per-round flip and Phase 4.5's verifier gate, so it must run them itself, inline): (1) run Round 0.5 seeding — `architecture_context`, `behavior_context`, ledger, and (if N>1) invariants; (2) resolve every material entry during the mission-clarity rounds, before handoff, using the same four states and rationale floor; (3) before writing the mission artifacts, run the Phase-4.5 independent-verifier checks against the mission brief + ledger (no un-rowed forks, no rationale-free `decided` rows, non-null contexts). Add these to the readiness gate.
+- The evaluator must encode the ledger constraints and each architectural invariant as **individually-named** `qualityGates` booleans (e.g. `result_type_used`, `no_switch_dispatch`, `domain_not_importing_infra`) — never a single aggregate `ledger_conformance` that a stub can rubber-stamp. On the `--autoresearch` branch there is no Phase-4 spec, so the Architecture & Integration and System Behavior *sections* do not apply as written; instead the resolved ledger constraints are baked into the evaluator command and the mission artifact, and the run must set `keep_policy: quality_gated`.
 - Once ready, do **not** bridge into `omc-plan`, `autopilot`, `ralph`, `team`, or the hard-deprecated `omc autoresearch` CLI. Instead write the mission/evaluator setup artifacts and invoke:
   - `Skill("oh-my-claudecode:autoresearch")`
 - This handoff enters the real stateful autoresearch skill. After a successful handoff, announce the mission slug, evaluator command/script, max-runtime ceiling, and artifact location.
@@ -140,7 +147,11 @@ Deep Interview threshold: <resolvedThresholdPercent> (source: <resolvedThreshold
       "last_targeted_component_id": null
     },
     "challenge_modes_used": [],
-    "ontology_snapshots": []
+    "ontology_snapshots": [],
+    "architecture_context": null,
+    "behavior_context": null,
+    "decision_ledger": [],
+    "architectural_invariants": []
   }
 }
 ```
@@ -150,6 +161,11 @@ Deep Interview threshold: <resolvedThresholdPercent> (source: <resolvedThreshold
 - `resolved_facts_summary`: a running, accumulating summary of facts that have been resolved across completed interview rounds. It is updated after each round by appending newly resolved facts (constraints confirmed, decisions locked, scope narrowed) — never by re-expanding raw Q&A. It drives the scoring window in Step 2c so the scoring prompt receives compact resolved context rather than the full growing transcript. Initialize as `null`; populate after Round 1 completes.
 
 **Update rule for `resolved_facts_summary`:** After each round's ambiguity score is computed, append the newly confirmed facts from that round (resolved constraints, scope decisions, named entities, locked assumptions) to `resolved_facts_summary`. Do not include raw Q&A text — distill only what was resolved or narrowed. This keeps the summary bounded even as the interview grows.
+
+- `architecture_context`: architect + explore findings about existing module boundaries, layering, dominant patterns, error-handling idiom, DI style, concurrency model, and test layout. Discovered from the repo (brownfield) so the user confirms rather than re-derives.
+- `behavior_context`: runtime-behavior findings per component — primary behavior, state transitions and ownership, side effects, sequencing/interactions, and observed failure/edge behavior.
+- `decision_ledger`: array of design/behavioral choice-points. Each entry: `{id, component_id, choice, options[], material: bool, material_reason, status: "conformed"|"decided"|"flagged_debt"|"pending_consensus"|"stamped_risk"|"undecided", decision, rationale, option_shapes?, owner: "user"|"architect", source: "convention"|"user"|"architect", divergence: bool, evidence[]}`. Terminal states: `conformed`/`decided`/`flagged_debt` are fully resolved; `pending_consensus` (novel structural fork routed to omc-plan consensus) resolves before execution and forces the consensus bridge; `stamped_risk` (unresolved-at-cap) counts as resolved only on a `BELOW_THRESHOLD_EARLY_EXIT` spec; `undecided` always blocks. `divergence` is only meaningful once `status ∈ {conformed, decided, flagged_debt}`. Seeded in Round 0.5, resolved during Phase 2, and (Phase 4.5) every row is re-derived from the final spec by an independent verifier before any execution option is offered.
+- `architectural_invariants`: cross-component, temporal invariants captured only when Round 0 confirmed N > 1 active components. Each entry: `{id, statement, scope: "cross-component"|"temporal", enforcement_mechanism, status: "decided"|"conformed"|"flagged_debt"|"waived", rationale}`. `enforcement_mechanism` MUST be a concrete executable check (import-linter rule, arch-fitness test, CI assertion), never prose. On `--autoresearch`, each becomes a named `qualityGate` boolean.
 
 5. **Announce the interview** to the user:
 
@@ -226,6 +242,60 @@ Options should include contextually relevant choices such as **Looks right**, **
 
 6. **Four-component fixture shape:** For an initial idea such as "Build an intake pipeline that ingests CSVs, normalizes records, provides a detailed reviewer UI with inline comments and approvals, and exports audit-ready reports," Round 0 should surface all four top-level components — `Ingestion`, `Normalization`, `Review UI`, and `Export` — even though `Review UI` is the one detailed component. The detailed `Review UI` component must not collapse or stand in for the less-detailed sibling components. Phase 2 must ask follow-up questions until every active component has sufficient goal/constraint/criteria clarity. Phase 4 must cover each confirmed component in `## Topology` or explicitly list a user-confirmed deferral for that component.
 
+## Round 0.5: Architecture & Behavior Discovery + Decision Ledger Seeding
+
+Run this once after Round 0 (topology) and before Phase 2 scoring. It exists because clarity on *what* to build does not prevent slop: an executor handed a crystal-clear WHAT-spec with no HOW-contract will pick tools arbitrarily (switch/case vs Protocol, exceptions vs Result, sync vs async) and, in brownfield, diverge from every existing convention. This gate makes the HOW **visible and decided** before execution. It is agent-driven — most facts are discovered, not asked.
+
+1. **Discover existing architecture** (brownfield) via `explore` + the `architect` agent. Store as `architecture_context`:
+   - module/layer boundaries and directory conventions (where does new code of this kind live?)
+   - dominant patterns (e.g. controller→service→repository, ports/adapters, event-driven)
+   - error-handling idiom (exceptions vs Result/Either), dependency-injection style, concurrency model
+   - naming conventions and test layout/conventions
+   - the concrete extension points relevant to each active topology component
+   Greenfield: record the intended stack/conventions instead. With no repo to conform to, more choice-points start `undecided` and must be decided explicitly.
+
+2. **Discover/define system behavior** per active component. Store as `behavior_context`:
+   - primary runtime behavior (the happy-path sequence of what actually happens)
+   - state model / transitions (if stateful) and who owns the state
+   - side effects (writes, network, events emitted) and idempotency expectations
+   - interactions/sequencing with sibling components and external systems
+   - failure and edge behavior (invalid input, partial failure, retries, timeouts)
+
+3. **Seed the Design Decision Ledger.** Have the `architect` agent enumerate the material design/behavioral choice-points this idea implies — the forks where two competent engineers would reasonably diverge. Each entry resolves to one of FOUR states:
+   - **conformed** — an existing convention decides it. Do NOT default to conforming: the architect must first *assess whether the incumbent convention is sound*. Record a `file:line` citation AND a one-line note on how that citation governs *this specific* choice (a bare directory or loosely-related file is not sufficient — if the citation is related-but-not-governing, the entry stays `undecided`).
+   - **decided** — no governing convention; resolved by explicit choice. Requires a rationale that names **≥2 concrete options considered and the why-not for the rejected option**, plus the driving constraint/requirement. Bare-adjective rationales ("for simplicity", "cleaner", "idiomatic") are rejected unless paired with a cited fact.
+   - **flagged_debt** — an incumbent convention exists but is itself the *source* of debt; new code deliberately diverges. Record the debt and the divergence rationale. This is a first-class outcome, not an exception — conforming to a bad pattern is how a slop-reduction tool becomes a slop amplifier.
+   - **undecided** — not yet resolved. "Not stated" is `undecided`, never a silent default. A material `undecided` entry **blocks completion**.
+
+   When a fork's shape is not obvious from its name, the architect records `option_shapes`: a short concrete rendering of each option (a code/interface skeleton, a directory tree, a call-site signature, or a sequence sketch) so the decision is *visible*, not a label. When such an entry is surfaced to the user, render the shapes in the `AskUserQuestion` **preview** so the user chooses by seeing the actual shape. A concrete shape is also far harder to rubber-stamp than an abstract term.
+
+   Ownership bright-line for each `undecided` entry: if resolving it changes **observable product behavior or a user-facing outcome → user-owned** (costs a user round); if it is **invisible to the user (pure engineering) → architect-owned** (auto-resolvable with a recorded rationale, no user round). When uncertain, treat it as user-owned.
+
+3a. **Canonical high-cost coverage (mandatory for multi-component / brownfield-modifying interviews).** Point-decision forks miss the decisions that actually cost weeks/months — those are cross-component and temporal. The architect MUST address every axis below, marking each `decided` / `conformed` / `flagged_debt` / `waived (reason)` — a whole axis may NOT be silently omitted:
+   - dependency direction / allowed import edges
+   - module boundaries and their integrity over future edits
+   - error & failure taxonomy (system-wide, not per-component)
+   - transaction / unit-of-work boundaries
+   - concurrency & consistency model
+   - data model & schema *evolution* (migration / backfill / compatibility), not just the initial shape
+   - API / contract versioning & compatibility
+   - cross-cutting concerns (auth, logging, observability)
+   - testability seams (injection points, ports for I/O)
+   - failure-domain isolation / blast radius
+   These axes are **material by definition** and cannot be reclassified as trivial.
+
+3b. **Architectural invariants (multi-component only).** When Round 0 confirmed **N > 1 active components**, capture cross-component invariants in `state.architectural_invariants` — they are not `component_id`-scoped and not one-shot (e.g. "the domain layer never imports infrastructure", "all money is integer minor-units", "writes are idempotent by request-id"). Each invariant MUST record an **`enforcement_mechanism`**: a concrete executable check (an import-linter rule, an architecture-fitness test, a CI assertion) — NOT prose. Prose invariants are not consulted by the next change; an executable check is. On the `--autoresearch` branch each invariant becomes a **named `qualityGate` boolean** the loop enforces. Single-component interviews skip this step.
+
+4. **Scale enforcement to scope (proportional gate), stored in `state.decision_ledger`.** Decide the ceremony at Round 0 by topology size so the gate is proportionate and does not drive users to escape-hatch:
+   - **single trivial component / `--quick`:** skip agent discovery; the ledger reduces to a one-line attestation ("no material forks; conforms to <cited convention>") plus any irreversible cross-boundary choice. No 3a coverage, no 3b invariants.
+   - **multi-component or brownfield-modifying:** full ledger + canonical coverage (3a) + invariants (3b).
+
+   A choice-point is **material** if ANY of: (1) two competent engineers would plausibly choose differently; (2) it names a pattern/library/protocol; (3) it touches an error path or failure mode; (4) reversing it edits >1 file; (5) it appears on the canonical list (3a). **If uncertain, classify material.** Every enumerated choice-point appears as a ledger row with an explicit `material: true|false` and a one-line reason — a "trivial" downgrade is a recorded, auditable act, never a silent omission.
+
+   The `architect` may auto-resolve *architect-owned* `undecided` entries without a user round — but **at most `A_max = 3` at the round hard cap / early exit** (highest blast-radius first, resolved to `decided` or `flagged_debt`); entries beyond that bound, and all unresolved user-owned entries, are flipped to `stamped_risk`, the spec is stamped `Status: BELOW_THRESHOLD_EARLY_EXIT`, and they are listed as explicit open risks (see the Ledger-gate precedence rule in Execution_Policy). **Novel structural forks** (a binding structural decision with no governing convention) may NOT be auto-flipped to `decided` by the architect's own single pass — mark them **`pending_consensus`** and route them to the omc-plan consensus stage, which resolves them to `decided` before execution. `pending_consensus` satisfies the completion gate (it is not `undecided`) but forces Phase 5 to select the omc-plan-consensus bridge. If a later answer introduces a new fork, add it as `undecided`; the Phase-4.5 self-check re-derives forks from the final spec, so a late or forgotten fork re-blocks.
+
+5. **Resume / legacy backfill.** When resuming a `deep-interview` state that predates `architecture_context` / `behavior_context` / `decision_ledger` (fields absent or at defaults), run Round 0.5 once before the next ambiguity scoring pass — mirroring the Round 0 legacy-topology backfill — unless a final spec already exists, in which case note the gap in the handoff rather than rewriting history.
+
 ## Phase 2: Interview Loop
 
 Repeat until `ambiguity ≤ threshold` OR user exits early:
@@ -248,6 +318,7 @@ If any prompt input is too large, summarize it first and then continue from the 
 - Generate a question that specifically improves that component's weakest dimension
 - State, in one sentence before the question, why this component/dimension pair is now the bottleneck to reducing ambiguity
 - Questions should expose ASSUMPTIONS, not gather feature lists
+- Treat every `undecided` material `decision_ledger` entry as a first-class gate item alongside the weakest dimension: surface it (ask the user for product/behavioral trade-offs, or record an architect decision-with-rationale for pure engineering choices), then flip it to `decided`/`conformed`. Completion stays blocked while any material entry is `undecided`, regardless of the numeric ambiguity score
 - If the scope is still conceptually fuzzy (entities keep shifting, the user is naming symptoms, or the core noun is unstable), switch to an ontology-style question that asks what the thing fundamentally IS before returning to feature/detail questions
 
 **Question styles by dimension:**
@@ -257,6 +328,8 @@ If any prompt input is too large, summarize it first and then continue from the 
 | Constraint Clarity | "What are the boundaries?" | "Should this work offline, or is internet connectivity assumed?" |
 | Success Criteria | "How do we know it works?" | "If I showed you the finished product, what would make you say 'yes, that's it'?" |
 | Context Clarity (brownfield) | "How does this fit?" | "I found JWT auth middleware in `src/auth/` (pattern: passport + JWT). Should this feature extend that path or intentionally diverge from it?" |
+| Architecture / Integration | "Where does this live and what does it follow?" | "This repo dispatches handlers through a `Handler` Protocol in `src/handlers/`. Should this feature register a new handler there, or is a different structure intended?" |
+| System Behavior | "What happens at runtime, including failure?" | "When an import row fails validation mid-batch, should the whole batch roll back, or skip the row and continue with a report? (illustrative — surface whichever ledger entry is unresolved)" |
 | Scope-fuzzy / ontology stress | "What IS the core thing here?" | "You have named Tasks, Projects, and Workspaces across the last rounds. Which one is the core entity, and which are supporting views or containers?" |
 
 ### Step 2b: Ask the Question
@@ -375,9 +448,9 @@ Update interview state with the new round, global scores, per-component `topolog
 
 ### Step 2f: Check Soft Limits
 
-- **Round 3+**: Allow early exit if user says "enough", "let's go", "build it"
+- **Round 3+**: Allow early exit if user says "enough", "let's go", "build it" — subject to the ledger-gate precedence rule (architect auto-resolves pure-engineering entries; user-owned trade-offs become spec risks)
 - **Round 10**: Show soft warning: "We're at 10 rounds. Current ambiguity: {score}%. Continue or proceed with current clarity?"
-- **Round 20**: Hard cap: "Maximum interview rounds reached. Proceeding with current clarity level ({score}%)."
+- **Round 20**: Hard cap: "Maximum interview rounds reached." Apply the ledger-gate precedence rule before proceeding (architect auto-resolves pure-engineering `undecided` entries with rationale; remaining user-owned entries are stamped as risks).
 
 ## Phase 3: Challenge Agents
 
@@ -386,6 +459,10 @@ At specific round thresholds, shift the questioning perspective:
 ### Round 4+: Contrarian Mode
 Inject into the question generation prompt:
 > You are now in CONTRARIAN mode. Your next question should challenge the user's core assumption. Ask "What if the opposite were true?" or "What if this constraint doesn't actually exist?" The goal is to test whether the user's framing is correct or just habitual.
+
+### Round 5+: Architect Mode (if the topology has multiple components OR the ledger has undecided entries)
+This is a **prompt-injection challenge lens** (like Contrarian/Simplifier), distinct from the Round-0.5 `architect` *agent* that seeds/auto-resolves ledger rows — do not conflate them or skip one for the other. Inject into the question generation prompt:
+> You are now in ARCHITECT mode. Interrogate the HOW, not the WHAT. Ask where each component lives, what module boundary separates them, and which existing pattern each one follows or breaks. Most importantly, hunt for *unstated design decisions*: where would two competent engineers reasonably diverge (dispatch strategy, error model, sync vs async, persistence shape, state ownership)? Every such fork not already in the Decision Ledger becomes a new `undecided` entry to resolve. The goal is that no material design choice reaches the executor by accident.
 
 ### Round 6+: Simplifier Mode
 Inject into the question generation prompt:
@@ -454,9 +531,10 @@ Spec structure:
 - {explicitly excluded scope 2}
 
 ## Acceptance Criteria
-- [ ] {testable criterion 1}
-- [ ] {testable criterion 2}
-- [ ] {testable criterion 3}
+Include functional criteria plus **conformance criteria** (checkable design constraints from the ledger, e.g. "new routes live in `src/api/routes/*` following controller→service→repository; reuse `Result<T,E>`, do not throw") and **behavioral criteria** (observable runtime outcomes including failure paths, e.g. "a mid-batch validation failure skips the row and appears in the summary report; the batch still commits valid rows").
+- [ ] {functional criterion}
+- [ ] {conformance criterion — design constraint from the ledger}
+- [ ] {behavioral criterion — runtime outcome incl. failure path}
 - ...
 
 ## Assumptions Exposed & Resolved
@@ -467,6 +545,32 @@ Spec structure:
 ## Technical Context
 {brownfield: relevant codebase findings from explore agent}
 {greenfield: technology choices and constraints}
+
+## Architecture & Integration
+{Where new code lives (module/file placement), the existing patterns it follows with file citations, interfaces/contracts it introduces, and any deliberate divergences with justification (ADR-lite). Every active topology component must be placed.}
+
+## System Behavior
+{Per active component: primary runtime behavior, state model/transitions and ownership, side effects and idempotency, interactions/sequencing with siblings and external systems, and failure/edge behavior.}
+
+## Design Decision Ledger
+{Every material design/behavioral choice-point, fully resolved. No `undecided` rows may remain. `flagged_debt` rows record a deliberate divergence from an incumbent convention that is itself debt.}
+
+| Choice-point | Options considered | Decision | Rationale (options + why-not) | Status | Owner |
+|--------------|--------------------|----------|-------------------------------|--------|-------|
+| {e.g. handler dispatch} | switch/case vs `Handler` Protocol | `Handler` Protocol | N handler types expected; switch/case rejected — violates Open/Closed as handlers grow | decided | architect |
+| {e.g. batch failure} | roll-back vs skip-and-report | skip-and-report | reviewer workflow needs partial progress; roll-back rejected — loses valid rows | decided | user |
+
+Column ↔ state-field map: Choice-point=`choice`, Options considered=`options[]`, Decision=`decision`, Rationale=`rationale`, Status=`status`, Owner=`owner`. State-only fields not rendered as columns: `id`, `component_id`, `material`, `material_reason`, `option_shapes`, `source`, `divergence`, `evidence[]`.
+
+## Canonical Coverage
+{Multi-component / brownfield-modifying interviews only. One row per canonical high-cost axis (dependency direction, module boundaries, error taxonomy, transaction boundaries, consistency model, schema evolution, API versioning, cross-cutting concerns, testability seams, failure isolation), each marked decided / conformed / flagged_debt / waived-with-reason. No axis silently omitted.}
+
+## Architectural Invariants
+{Multi-component interviews only. Cross-component / temporal invariants, each with an executable `enforcement_mechanism` (import-linter rule, arch-fitness test, CI assertion) — not prose.}
+
+| Invariant | Scope | Enforcement mechanism | Status |
+|-----------|-------|-----------------------|--------|
+| domain layer never imports infrastructure | cross-component | import-linter contract in `.importlinter` | decided |
 
 ## Ontology (Key Entities)
 {Fill from the FINAL round's ontology extraction, not just crystallization-time generation}
@@ -498,11 +602,25 @@ Spec structure:
 </details>
 ```
 
+## Phase 4.5: Ledger Enforcement Gate (independent, mechanical)
+
+Before ANY execution option is offered, run a blocking verification pass. Because the whole interview ran in one context, it cannot approve its own ledger — spawn an **independent `verifier` (or `critic`) agent** with the final spec + `state` and have it check the artifact, not the model's self-report. The gate FAILS (return to Phase 2) if any of these hold:
+
+1. **Discovery was skipped:** `architecture_context == null` OR `behavior_context == null` → block — EXCEPT on a `--quick` / single-trivial run whose ledger carries the one-line attestation row (that path legitimately skips agent discovery per Round 0.5 step 4). A bare `[]` with null contexts and no attestation row still fails open and is a hard block.
+2. **Un-rowed forks:** the verifier re-derives design forks from the FINAL spec text (Architecture & Integration + System Behavior sections). Any fork present in the spec but absent from `decision_ledger` is injected as `undecided` → block. On the `--autoresearch` branch (no Phase-4 spec), re-derive forks from the mission brief prose + baked evaluator constraints instead.
+3. **Weak rows:** any `status: decided` row whose `rationale` does not name a rejected option and a why-not → downgraded to `undecided` → block. Any `status: conformed` row whose citation is a directory or a related-but-not-governing file → `undecided` → block.
+4. **Coverage holes** (multi-component / brownfield): any canonical axis (step 3a) not marked decided/conformed/flagged_debt/waived → block.
+5. **Unenforceable invariants** (multi-component): any `architectural_invariant` whose `enforcement_mechanism` is prose rather than an executable check → block.
+
+**Terminal-state handling (prevents the cap→block→cap loop):** on a `Status: BELOW_THRESHOLD_EARLY_EXIT` spec, `stamped_risk` rows are verified only for the presence of the risk stamp — they are NOT re-blocked under gate #3, so a sanctioned early-exit cannot bounce back into Phase 2. Also on such a spec, an auto-resolved `decided` or `conformed` row that fails gate #3 (thin rationale / non-governing citation) **degrades to `stamped_risk`** rather than returning to Phase 2 — the exit never loops. `pending_consensus` rows pass gates #1–#5 but oblige Phase 5 to select the omc-plan-consensus bridge (they are resolved *there*, not here). `undecided` always blocks. (On a normal, non-early-exit completion these degradations do not apply — gate #3 blocks as usual, because there is no cap forcing the exit.)
+
+Only when the verifier returns zero blocks may Phase 5 proceed. Record the verifier verdict in the spec metadata. This lane is the mechanical enforcement; the prose gates elsewhere are necessary but not sufficient without it.
+
 ## Phase 5: Execution Bridge
 
 **Autoresearch override:** if `--autoresearch` is active, skip the standard execution options below. The only valid bridge is the `Skill("oh-my-claudecode:autoresearch")` handoff described above. The `omc autoresearch` CLI is a hard-deprecated shim and must not be used for execution.
 
-After the spec is written, mark it `pending approval` and present execution options via `AskUserQuestion`. Until the user selects an execution option, the deep-interview module MUST NOT run mutation-oriented shell commands, edit source files, commit, push, open PRs, invoke execution skills, or delegate implementation tasks:
+After the spec is written, mark it `pending approval` and present execution options via `AskUserQuestion`. No execution option may be offered while the Design Decision Ledger contains any `undecided` material entry, or while the Phase-4.5 gate has not passed, or while the spec lacks complete Architecture & Integration and System Behavior sections — resolve those first (return to Phase 2), because handing a HOW-less spec to autopilot/ralph/team is exactly what produces slop. If any ledger row is `pending_consensus`, the ONLY offerable bridge is "Refine with omc-plan consensus" (option 1) — the other execution options are withheld until consensus resolves those forks to `decided`. Until the user selects an execution option, the deep-interview module MUST NOT run mutation-oriented shell commands, edit source files, commit, push, open PRs, invoke execution skills, or delegate implementation tasks:
 
 **Question:** "Your spec is ready (ambiguity: {score}%). How would you like to proceed?"
 
@@ -673,12 +791,12 @@ Why bad: 45% ambiguity means nearly half the requirements are unclear. The mathe
 </Examples>
 
 <Escalation_And_Stop_Conditions>
-- **Hard cap at 20 rounds**: Proceed with whatever clarity exists, noting the risk
+- **Hard cap at 20 rounds**: Proceed under the ledger-gate precedence rule (architect auto-resolves pure-engineering `undecided` entries; user-owned entries become spec risks), noting the risk
 - **Soft warning at 10 rounds**: Offer to continue or proceed
-- **Early exit (round 3+)**: Allow with warning if ambiguity > threshold
+- **Early exit (round 3+)**: Allow with warning if ambiguity > threshold, subject to the ledger-gate precedence rule
 - **User says "stop", "cancel", "abort"**: Stop immediately, save state for resume
 - **Ambiguity stalls** (same score +-0.05 for 3 rounds): Activate Ontologist mode to reframe
-- **All dimensions at 0.9+**: Skip to spec generation even if not at round minimum
+- **All dimensions at 0.9+**: Skip to spec generation even if not at round minimum, but still apply the ledger-gate precedence rule — the score-based skip cannot bypass an `undecided` material entry (architect auto-resolves engineering entries; user-owned ones block or become stamped risks)
 - **Codebase exploration fails**: Proceed as greenfield, note the limitation
 </Escalation_And_Stop_Conditions>
 
@@ -689,7 +807,7 @@ Why bad: 45% ambiguity means nearly half the requirements are unclear. The mathe
 - [ ] Oversized initial context/history was summarized before scoring, question generation, spec generation, or execution handoff
 - [ ] Ambiguity score displayed after every round
 - [ ] Every round explicitly names the weakest dimension and why it is the next target
-- [ ] Challenge agents activated at correct thresholds (round 4, 6, 8)
+- [ ] Challenge agents activated at correct thresholds (round 4 Contrarian, 5 Architect, 6 Simplifier, 8 Ontologist)
 - [ ] Spec file written to `.omc/specs/deep-interview-{slug}.md` exactly; ephemeral artifacts stayed under `.omc/state/` or `state_write`
 - [ ] Spec includes: topology, goal, constraints, acceptance criteria, clarity breakdown, transcript
 - [ ] Execution bridge presented via AskUserQuestion
@@ -703,6 +821,17 @@ Why bad: 45% ambiguity means nearly half the requirements are unclear. The mathe
 - [ ] Multi-component interviews rotate targeting across active components when N > 1
 - [ ] Spec includes Topology section with confirmed active components and user-confirmed deferrals
 - [ ] Spec includes Ontology (Key Entities) table and Ontology Convergence section
+- [ ] Round 0.5 ran: `architecture_context` + `behavior_context` discovered (explore + architect) and Decision Ledger seeded before Phase 2 scoring
+- [ ] Every material choice-point reached a terminal status — `conformed` (governing `file:line`), `decided` (rationale names options + why-not), `flagged_debt`, `pending_consensus` (novel structural fork → consensus bridge), or `stamped_risk` (only on a `BELOW_THRESHOLD_EARLY_EXIT` spec) — zero `undecided` material entries before any execution option is offered
+- [ ] At the cap/early-exit, architect auto-resolution honored `A_max = 3`; the excess and all unresolved user-owned entries were flipped to `stamped_risk` (not left `undecided`) and the spec stamped `BELOW_THRESHOLD_EARLY_EXIT`
+- [ ] Multi-component / brownfield-modifying: every canonical high-cost axis (dependency direction, boundaries, error taxonomy, transactions, consistency, schema evolution, API versioning, cross-cutting, testability seams, failure isolation) is decided/conformed/flagged_debt/waived — no axis silently omitted
+- [ ] Multi-component: architectural invariants captured, each with an executable `enforcement_mechanism` (not prose)
+- [ ] Enforcement scaled to scope: single trivial / `--quick` used the one-line attestation path; multi-component/brownfield used the full ledger + coverage + invariants
+- [ ] **Phase 4.5 independent verifier gate passed**: `architecture_context`/`behavior_context` non-null, no un-rowed forks re-derived from the spec, no rationale-free `decided` rows, no coverage holes, no prose-only invariants — verdict recorded in spec metadata
+- [ ] Spec includes Architecture & Integration, System Behavior, Design Decision Ledger, Canonical Coverage (multi-component), and Architectural Invariants (multi-component) sections
+- [ ] Acceptance criteria include conformance (design-constraint) and behavioral (runtime/failure) criteria
+- [ ] Architect Mode challenge ran when topology had multiple components or the ledger had undecided entries
+- [ ] Novel structural forks were routed to omc-plan consensus (not architect-auto-flipped to `decided`)
 </Final_Checklist>
 
 <Advanced>
