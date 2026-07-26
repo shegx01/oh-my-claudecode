@@ -89,3 +89,97 @@ describe('decideAutoresearchOutcome (score_improvement bootstrap)', () => {
     expect(decision.decisionReason).toMatch(/pass_only/i);
   });
 });
+
+describe('decideAutoresearchOutcome (quality_gated)', () => {
+  it('keeps a passing candidate when all gates hold and score improves', () => {
+    const manifest: ManifestSlice = { keep_policy: 'quality_gated', last_kept_score: 0.36 };
+    const decision = decideAutoresearchOutcome(
+      manifest,
+      makeCandidate(),
+      makeEvaluation({ score: 0.40, quality_gates: { architecture: true, behavior: true } }),
+    );
+    expect(decision.decision).toBe('keep');
+    expect(decision.keep).toBe(true);
+    expect(decision.decisionReason).toMatch(/score improved/i);
+  });
+
+  it('discards a passing candidate when a quality gate is false', () => {
+    const manifest: ManifestSlice = { keep_policy: 'quality_gated', last_kept_score: 0.36 };
+    const decision = decideAutoresearchOutcome(
+      manifest,
+      makeCandidate(),
+      makeEvaluation({ score: 0.40, quality_gates: { architecture: true, behavior: false } }),
+    );
+    expect(decision.decision).toBe('discard');
+    expect(decision.keep).toBe(false);
+    expect(decision.decisionReason).toMatch(/quality gate/i);
+    expect(decision.decisionReason).toMatch(/behavior/);
+  });
+
+  it('discards a passing gated candidate whose score does not improve over the baseline', () => {
+    const manifest: ManifestSlice = { keep_policy: 'quality_gated', last_kept_score: 0.50 };
+    const decision = decideAutoresearchOutcome(
+      manifest,
+      makeCandidate(),
+      makeEvaluation({ score: 0.40, quality_gates: { architecture: true, behavior: true } }),
+    );
+    expect(decision.decision).toBe('discard');
+    expect(decision.keep).toBe(false);
+    expect(decision.decisionReason).toMatch(/score did not improve/i);
+  });
+
+  it('keeps the first gated pass with a numeric score when no baseline exists yet', () => {
+    const manifest: ManifestSlice = { keep_policy: 'quality_gated', last_kept_score: null };
+    const decision = decideAutoresearchOutcome(
+      manifest,
+      makeCandidate(),
+      makeEvaluation({ score: 0.40, quality_gates: { architecture: true, behavior: true } }),
+    );
+    expect(decision.decision).toBe('keep');
+    expect(decision.keep).toBe(true);
+    expect(decision.decisionReason).toMatch(/bootstrap/i);
+  });
+
+  it('fails closed and discards a passing candidate when no quality gates are declared', () => {
+    const manifest: ManifestSlice = { keep_policy: 'quality_gated', last_kept_score: null };
+    const evaluation = makeEvaluation({ score: 0.40 });
+    delete evaluation.quality_gates;
+    const decision = decideAutoresearchOutcome(manifest, makeCandidate(), evaluation);
+    expect(decision.decision).toBe('discard');
+    expect(decision.keep).toBe(false);
+    expect(decision.decisionReason).toMatch(/at least one declared quality gate/i);
+  });
+
+  it('fails closed and discards a passing candidate when quality gates are an empty object', () => {
+    const manifest: ManifestSlice = { keep_policy: 'quality_gated', last_kept_score: 0.36 };
+    const decision = decideAutoresearchOutcome(
+      manifest,
+      makeCandidate(),
+      makeEvaluation({ score: 0.40, quality_gates: {} }),
+    );
+    expect(decision.decision).toBe('discard');
+    expect(decision.keep).toBe(false);
+    expect(decision.decisionReason).toMatch(/at least one declared quality gate/i);
+  });
+
+  it('marks a gated pass with satisfied gates but no numeric score as ambiguous', () => {
+    const manifest: ManifestSlice = { keep_policy: 'quality_gated', last_kept_score: null };
+    const evaluation = makeEvaluation({ quality_gates: { architecture: true, behavior: true } });
+    delete evaluation.score;
+    const decision = decideAutoresearchOutcome(manifest, makeCandidate(), evaluation);
+    expect(decision.decision).toBe('ambiguous');
+    expect(decision.keep).toBe(false);
+  });
+
+  it('leaves score_improvement unaffected by a failing gate present in the record', () => {
+    const manifest: ManifestSlice = { keep_policy: 'score_improvement', last_kept_score: 0.36 };
+    const decision = decideAutoresearchOutcome(
+      manifest,
+      makeCandidate(),
+      makeEvaluation({ score: 0.40, quality_gates: { architecture: false } }),
+    );
+    expect(decision.decision).toBe('keep');
+    expect(decision.keep).toBe(true);
+    expect(decision.decisionReason).toMatch(/score improved/i);
+  });
+});

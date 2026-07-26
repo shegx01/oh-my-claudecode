@@ -47,6 +47,11 @@ export declare const stateGetStatusTool: ToolDefinition<{
 /**
  * All state tools for registration
  */
+export declare const ledgerVerifyTool: ToolDefinition<{
+    spec_path: z.ZodOptional<z.ZodString>;
+    workingDirectory: z.ZodOptional<z.ZodString>;
+    session_id: z.ZodOptional<z.ZodString>;
+}>;
 export declare const stateTools: (ToolDefinition<{
     mode: z.ZodEnum<typeof STATE_TOOL_MODES>;
     workingDirectory: z.ZodOptional<z.ZodString>;
@@ -71,6 +76,10 @@ export declare const stateTools: (ToolDefinition<{
     all: z.ZodOptional<z.ZodBoolean>;
 }> | ToolDefinition<{
     mode: z.ZodOptional<z.ZodEnum<typeof STATE_TOOL_MODES>>;
+    workingDirectory: z.ZodOptional<z.ZodString>;
+    session_id: z.ZodOptional<z.ZodString>;
+}> | ToolDefinition<{
+    spec_path: z.ZodOptional<z.ZodString>;
     workingDirectory: z.ZodOptional<z.ZodString>;
     session_id: z.ZodOptional<z.ZodString>;
 }> | ToolDefinition<any>)[];

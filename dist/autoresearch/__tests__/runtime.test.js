@@ -246,6 +246,79 @@ describe('autoresearch parity decisions', () => {
         }
     });
 });
+async function makeGatedContract(repo) {
+    const missionDir = join(repo, 'missions', 'demo');
+    await mkdir(missionDir, { recursive: true });
+    await mkdir(join(repo, 'scripts'), { recursive: true });
+    const missionFile = join(missionDir, 'mission.md');
+    const sandboxFile = join(missionDir, 'sandbox.md');
+    const missionContent = '# Mission\nSolve the task.\n';
+    const sandboxContent = `---\nevaluator:\n  command: node scripts/eval.js\n  format: json\n  keep_policy: quality_gated\n---\nStay inside the mission boundary.\n`;
+    await writeFile(missionFile, missionContent, 'utf-8');
+    await writeFile(sandboxFile, sandboxContent, 'utf-8');
+    await writeFile(join(repo, 'scripts', 'eval.js'), 'process.stdout.write(JSON.stringify({ pass: true, score: 0.9, qualityGates: { lint: false } }));\n', 'utf-8');
+    execFileSync('git', ['add', 'missions/demo/mission.md', 'missions/demo/sandbox.md', 'scripts/eval.js'], { cwd: repo, stdio: 'ignore' });
+    execFileSync('git', ['commit', '-m', 'add gated autoresearch fixtures'], { cwd: repo, stdio: 'ignore' });
+    return {
+        missionDir,
+        repoRoot: repo,
+        missionFile,
+        sandboxFile,
+        missionRelativeDir: 'missions/demo',
+        missionContent,
+        sandboxContent,
+        sandbox: {
+            frontmatter: { evaluator: { command: 'node scripts/eval.js', format: 'json', keep_policy: 'quality_gated' } },
+            evaluator: { command: 'node scripts/eval.js', format: 'json', keep_policy: 'quality_gated' },
+            body: 'Stay inside the mission boundary.',
+        },
+        missionSlug: 'missions-demo',
+    };
+}
+describe('autoresearch quality_gated parity', () => {
+    it('discards a gate-failing candidate, resets the worktree, and records a discard row', async () => {
+        const repo = await initRepo();
+        try {
+            const contract = await makeGatedContract(repo);
+            const worktreePath = join(repo, '..', `${repo.split('/').pop()}.omc-worktrees`, 'autoresearch-missions-demo-20260314t070000z');
+            execFileSync('git', ['worktree', 'add', '-b', 'autoresearch/missions-demo/20260314t070000z', worktreePath, 'HEAD'], {
+                cwd: repo,
+                stdio: 'ignore',
+            });
+            const worktreeContract = await materializeAutoresearchMissionToWorktree(contract, worktreePath);
+            const runtime = await prepareAutoresearchRuntime(worktreeContract, repo, worktreePath, { runTag: '20260314T070000Z' });
+            const initialManifest = await loadAutoresearchRunManifest(repo, runtime.runId);
+            const lastKeptCommit = initialManifest.last_kept_commit;
+            await writeFile(join(worktreePath, 'change.txt'), 'candidate change\n', 'utf-8');
+            execFileSync('git', ['add', 'change.txt'], { cwd: worktreePath, stdio: 'ignore' });
+            execFileSync('git', ['commit', '-m', 'gate-failing change'], { cwd: worktreePath, stdio: 'ignore' });
+            const candidateCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: worktreePath, encoding: 'utf-8' }).trim();
+            await writeFile(runtime.candidateFile, `${JSON.stringify({
+                status: 'candidate',
+                candidate_commit: candidateCommit,
+                base_commit: lastKeptCommit,
+                description: 'gate-failing candidate',
+                notes: ['lint gate is false'],
+                created_at: '2026-03-14T07:00:00.000Z',
+            }, null, 2)}\n`, 'utf-8');
+            const decision = await processAutoresearchCandidate(worktreeContract, initialManifest, repo);
+            expect(decision).toBe('discard');
+            const headAfterDiscard = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: worktreePath, encoding: 'utf-8' }).trim();
+            expect(headAfterDiscard).toBe(lastKeptCommit);
+            expect(headAfterDiscard).not.toBe(candidateCommit);
+            const ledger = JSON.parse(await readFile(runtime.ledgerFile, 'utf-8'));
+            const discardEntry = ledger.entries.find((entry) => entry.decision === 'discard');
+            expect(discardEntry).toBeTruthy();
+            expect(discardEntry?.decision_reason).toMatch(/quality gate/i);
+            const modeState = readModeState('autoresearch', repo);
+            expect(modeState?.plateau_count).toBe(1);
+            expect(modeState?.plateau_limit).toBe(3);
+        }
+        finally {
+            await rm(repo, { recursive: true, force: true });
+        }
+    });
+});
 describe('autoresearch startup exclusivity', () => {
     it('blocks startup when a session-scoped ralph state is active', async () => {
         const repo = await initRepo();

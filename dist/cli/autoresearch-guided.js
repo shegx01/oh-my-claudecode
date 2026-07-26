@@ -86,8 +86,8 @@ export function parseInitArgs(args) {
         }
         else if ((arg === '--keep-policy') && next) {
             const normalized = next.trim().toLowerCase();
-            if (normalized !== 'pass_only' && normalized !== 'score_improvement') {
-                throw new Error('--keep-policy must be one of: score_improvement, pass_only');
+            if (normalized !== 'pass_only' && normalized !== 'score_improvement' && normalized !== 'quality_gated') {
+                throw new Error('--keep-policy must be one of: score_improvement, pass_only, quality_gated');
             }
             result.keepPolicy = normalized;
             i++;
@@ -106,8 +106,8 @@ export function parseInitArgs(args) {
         }
         else if (arg.startsWith('--keep-policy=')) {
             const normalized = arg.slice('--keep-policy='.length).trim().toLowerCase();
-            if (normalized !== 'pass_only' && normalized !== 'score_improvement') {
-                throw new Error('--keep-policy must be one of: score_improvement, pass_only');
+            if (normalized !== 'pass_only' && normalized !== 'score_improvement' && normalized !== 'quality_gated') {
+                throw new Error('--keep-policy must be one of: score_improvement, pass_only, quality_gated');
             }
             result.keepPolicy = normalized;
         }
@@ -136,8 +136,11 @@ export async function runAutoresearchNoviceBridge(repoRoot, seedInputs = {}, io 
             }
             const evaluatorIntent = await promptWithDefault(io, '\nHow should OMC judge success? Describe it in plain language', topic);
             evaluatorCommand = await promptWithDefault(io, '\nEvaluator command (leave placeholder to refine further; must output {pass:boolean, score?:number} JSON before launch)', evaluatorCommand || `TODO replace with evaluator command for: ${evaluatorIntent}`);
-            const keepPolicyInput = await promptWithDefault(io, '\nKeep policy [score_improvement/pass_only]', keepPolicy);
-            keepPolicy = keepPolicyInput.trim().toLowerCase() === 'pass_only' ? 'pass_only' : 'score_improvement';
+            const keepPolicyInput = await promptWithDefault(io, '\nKeep policy [score_improvement/pass_only/quality_gated]', keepPolicy);
+            const keepPolicyNormalized = keepPolicyInput.trim().toLowerCase();
+            keepPolicy = keepPolicyNormalized === 'pass_only' || keepPolicyNormalized === 'quality_gated'
+                ? keepPolicyNormalized
+                : 'score_improvement';
             slug = await promptWithDefault(io, '\nMission slug', slug || slugifyMissionName(topic));
             slug = slugifyMissionName(slug);
             const deepInterview = await writeAutoresearchDeepInterviewArtifacts({

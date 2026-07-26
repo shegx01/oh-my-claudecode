@@ -4,7 +4,7 @@ import { realpathSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { loadAutoresearchMissionContract, parseEvaluatorResult, parseSandboxContract, slugifyMissionName, } from '../contracts.js';
+import { failedQualityGates, loadAutoresearchMissionContract, parseEvaluatorResult, parseSandboxContract, slugifyMissionName, validateQualityGateNames, } from '../contracts.js';
 async function initRepo() {
     const cwd = await mkdtemp(join(tmpdir(), 'omc-autoresearch-contracts-'));
     execFileSync('git', ['init'], { cwd, stdio: 'ignore' });
@@ -48,6 +48,17 @@ Stay in bounds.
 `);
         expect(parsed.evaluator.keep_policy).toBe('pass_only');
     });
+    it('parses quality_gated evaluator keep_policy', () => {
+        const parsed = parseSandboxContract(`---
+evaluator:
+  command: node scripts/eval.js
+  format: json
+  keep_policy: quality_gated
+---
+Stay in bounds.
+`);
+        expect(parsed.evaluator.keep_policy).toBe('quality_gated');
+    });
     it('rejects unsupported evaluator keep_policy', () => {
         expect(() => parseSandboxContract(`---
 evaluator:
@@ -69,6 +80,48 @@ Stay in bounds.
     });
     it('rejects evaluator result with non-numeric score', () => {
         expect(() => parseEvaluatorResult('{"pass":true,"score":"high"}')).toThrow(/score must be numeric/i);
+    });
+    it('preserves a valid qualityGates object on the evaluator result', () => {
+        expect(parseEvaluatorResult('{"pass":true,"qualityGates":{"architecture":true,"behavior":false}}'))
+            .toEqual({ pass: true, qualityGates: { architecture: true, behavior: false } });
+    });
+    it('omits qualityGates from the evaluator result when absent', () => {
+        expect(parseEvaluatorResult('{"pass":true}')).toEqual({ pass: true });
+    });
+    it('rejects evaluator result whose qualityGates is an array', () => {
+        expect(() => parseEvaluatorResult('{"pass":true,"qualityGates":[]}'))
+            .toThrow(/qualityGates must be an object of string->boolean/i);
+    });
+    it('rejects evaluator result whose qualityGates is null', () => {
+        expect(() => parseEvaluatorResult('{"pass":true,"qualityGates":null}'))
+            .toThrow(/qualityGates must be an object of string->boolean/i);
+    });
+    it('rejects evaluator result whose qualityGates has a non-boolean value', () => {
+        expect(() => parseEvaluatorResult('{"pass":true,"qualityGates":{"architecture":"yes"}}'))
+            .toThrow(/qualityGates must be an object of string->boolean/i);
+    });
+    it('failedQualityGates returns names of gates that are false', () => {
+        expect(failedQualityGates({ architecture: true, behavior: false, perf: false }))
+            .toEqual(['behavior', 'perf']);
+    });
+    it('failedQualityGates returns [] when all gates are true', () => {
+        expect(failedQualityGates({ architecture: true, behavior: true })).toEqual([]);
+    });
+    it('failedQualityGates returns [] when gates are undefined', () => {
+        expect(failedQualityGates(undefined)).toEqual([]);
+    });
+    it('treats an empty qualityGates object as no gates declared (pass)', () => {
+        expect(parseEvaluatorResult('{"pass":true,"qualityGates":{}}')).toEqual({ pass: true, qualityGates: {} });
+        expect(failedQualityGates({})).toEqual([]);
+    });
+    it('validateQualityGateNames flags suspiciously-generic aggregate gate names', () => {
+        const warnings = validateQualityGateNames({ ledger_conformance: true });
+        expect(warnings).toHaveLength(1);
+        expect(warnings[0]).toMatch(/ledger_conformance/);
+        expect(warnings[0]).toMatch(/aggregate gate/i);
+    });
+    it('validateQualityGateNames passes named, granular gates', () => {
+        expect(validateQualityGateNames({ no_switch_dispatch: true })).toEqual([]);
     });
     it('loads mission contract from in-repo mission directory', async () => {
         const repo = realpathSync(await initRepo());

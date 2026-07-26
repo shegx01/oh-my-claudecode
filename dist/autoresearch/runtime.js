@@ -5,7 +5,7 @@ import { dirname, join, resolve } from 'path';
 import { getOmcRoot } from '../lib/worktree-paths.js';
 import { readModeState, writeModeState, } from '../lib/mode-state-io.js';
 import { isModeActiveInAnySession } from '../hooks/mode-registry/index.js';
-import { parseEvaluatorResult, } from './contracts.js';
+import { failedQualityGates, parseEvaluatorResult, validateQualityGateNames, } from './contracts.js';
 const AUTORESEARCH_RESULTS_HEADER = 'iteration\tcommit\tpass\tscore\tstatus\tdescription\n';
 const AUTORESEARCH_WORKTREE_EXCLUDES = ['results.tsv', 'run.log', 'node_modules', '.omc/'];
 // Exclusive modes that cannot run concurrently with autoresearch
@@ -340,6 +340,27 @@ export async function countTrailingAutoresearchNoops(ledgerFile) {
     }
     return count;
 }
+export const AUTORESEARCH_PLATEAU_K = 3;
+const AUTORESEARCH_PLATEAU_EVALUATED_DECISIONS = new Set([
+    'discard',
+    'ambiguous',
+    'error',
+]);
+export async function countTrailingIterationsWithoutBestStateImprovement(ledgerFile) {
+    const entries = await readAutoresearchLedgerEntries(ledgerFile);
+    let count = 0;
+    for (let index = entries.length - 1; index >= 0; index -= 1) {
+        const entry = entries[index];
+        if (!entry || entry.kind !== 'iteration')
+            break;
+        if (entry.decision === 'keep')
+            break;
+        if (!AUTORESEARCH_PLATEAU_EVALUATED_DECISIONS.has(entry.decision))
+            break;
+        count += 1;
+    }
+    return count;
+}
 function formatAutoresearchInstructionSummary(entries, maxEntries = 3) {
     return entries
         .slice(-maxEntries)
@@ -364,7 +385,7 @@ async function buildAutoresearchInstructionContext(manifest) {
         recentLedgerSummary: formatAutoresearchInstructionSummary(entries),
     };
 }
-export async function runAutoresearchEvaluator(contract, worktreePath, ledgerFile, latestEvaluatorFile) {
+export async function runAutoresearchEvaluator(contract, worktreePath) {
     const ran_at = nowIso();
     const result = spawnSync(contract.sandbox.evaluator.command, {
         cwd: worktreePath,
@@ -388,12 +409,18 @@ export async function runAutoresearchEvaluator(contract, worktreePath, ledgerFil
     else {
         try {
             const parsed = parseEvaluatorResult(stdout);
+            if (parsed.qualityGates !== undefined) {
+                for (const warning of validateQualityGateNames(parsed.qualityGates)) {
+                    console.warn(`[autoresearch] ${warning}`);
+                }
+            }
             record = {
                 command: contract.sandbox.evaluator.command,
                 ran_at,
                 status: parsed.pass ? 'pass' : 'fail',
                 pass: parsed.pass,
                 ...(parsed.score !== undefined ? { score: parsed.score } : {}),
+                ...(parsed.qualityGates !== undefined ? { quality_gates: parsed.qualityGates } : {}),
                 exit_code: result.status,
                 stdout,
                 stderr,
@@ -410,26 +437,6 @@ export async function runAutoresearchEvaluator(contract, worktreePath, ledgerFil
                 parse_error: error instanceof Error ? error.message : String(error),
             };
         }
-    }
-    if (latestEvaluatorFile) {
-        await writeJsonFile(latestEvaluatorFile, record);
-    }
-    if (ledgerFile) {
-        await appendAutoresearchLedgerEntry(ledgerFile, {
-            iteration: -1,
-            kind: 'iteration',
-            decision: record.status === 'error' ? 'error' : record.status === 'pass' ? 'keep' : 'discard',
-            decision_reason: 'raw evaluator record',
-            candidate_status: 'candidate',
-            base_commit: readGitShortHead(worktreePath),
-            candidate_commit: null,
-            kept_commit: readGitShortHead(worktreePath),
-            keep_policy: contract.sandbox.evaluator.keep_policy ?? 'score_improvement',
-            evaluator: record,
-            created_at: nowIso(),
-            notes: ['raw evaluator invocation'],
-            description: 'raw evaluator record',
-        });
     }
     return record;
 }
@@ -481,6 +488,27 @@ export function decideAutoresearchOutcome(manifest, candidate, evaluation) {
             evaluator: evaluation,
             notes: ['candidate discarded because evaluator pass=false'],
         };
+    }
+    if (manifest.keep_policy === 'quality_gated') {
+        if (!evaluation.quality_gates || Object.keys(evaluation.quality_gates).length === 0) {
+            return {
+                decision: 'discard',
+                decisionReason: 'quality_gated requires at least one declared quality gate',
+                keep: false,
+                evaluator: evaluation,
+                notes: ['candidate discarded because quality_gated policy saw no declared quality gates (fail-closed)'],
+            };
+        }
+        const gateFailures = failedQualityGates(evaluation.quality_gates);
+        if (gateFailures.length > 0) {
+            return {
+                decision: 'discard',
+                decisionReason: `quality gate(s) failed: ${gateFailures.join(', ')}`,
+                keep: false,
+                evaluator: evaluation,
+                notes: ['candidate discarded and rolled back because a quality gate regressed or failed'],
+            };
+        }
     }
     if (manifest.keep_policy === 'pass_only') {
         return {
@@ -586,6 +614,7 @@ export function buildAutoresearchInstructions(contract, context) {
         '- format: json',
         '- required output field: pass (boolean)',
         '- optional output field: score (number)',
+        '- optional output field: qualityGates (object of string->boolean; required to all be true when keep_policy is quality_gated)',
         '',
         'Mission content:',
         '```md',
@@ -1190,6 +1219,7 @@ export async function processAutoresearchCandidate(contract, manifest, projectRo
     });
     await writeRunManifest(manifest);
     await writeInstructionsFile(contract, manifest);
+    const plateauCount = await countTrailingIterationsWithoutBestStateImprovement(manifest.ledger_file);
     updateAutoresearchMode({
         current_phase: 'running',
         iteration: manifest.iteration,
@@ -1199,6 +1229,8 @@ export async function processAutoresearchCandidate(contract, manifest, projectRo
         latest_evaluator_pass: evaluation.pass,
         latest_evaluator_score: evaluation.score,
         latest_evaluator_ran_at: evaluation.ran_at,
+        plateau_count: plateauCount,
+        plateau_limit: AUTORESEARCH_PLATEAU_K,
         decision_log_file: artifactLayout.decisionLogFile,
     }, projectRoot);
     return decision.decision;

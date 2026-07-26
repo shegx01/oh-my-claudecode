@@ -22,6 +22,34 @@ describe('validateAutoresearchSetupHandoff', () => {
     expect(result.keepPolicy).toBe('pass_only');
   });
 
+  it('accepts and round-trips a quality_gated keep policy', () => {
+    const result = validateAutoresearchSetupHandoff({
+      missionText: 'Raise code review quality',
+      evaluatorCommand: 'npm run eval:review',
+      evaluatorSource: 'user',
+      confidence: 1,
+      keepPolicy: 'quality_gated',
+      slug: 'review-quality',
+      readyToLaunch: true,
+    });
+
+    expect(result.keepPolicy).toBe('quality_gated');
+    expect(buildSetupSandboxContent(result.evaluatorCommand, result.keepPolicy))
+      .toContain('keep_policy: quality_gated');
+  });
+
+  it('rejects an unsupported keep policy', () => {
+    expect(() => validateAutoresearchSetupHandoff({
+      missionText: 'Improve things',
+      evaluatorCommand: 'npm test',
+      evaluatorSource: 'user',
+      confidence: 1,
+      keepPolicy: 'maybe_keep',
+      slug: 'improve',
+      readyToLaunch: true,
+    })).toThrow(/keepPolicy must be one of: score_improvement, pass_only, quality_gated/i);
+  });
+
   it('rejects low-confidence inferred evaluators marked launch-ready', () => {
     expect(() => validateAutoresearchSetupHandoff({
       missionText: 'Investigate flaky tests',

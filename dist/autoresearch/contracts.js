@@ -97,7 +97,9 @@ function parseKeepPolicy(raw) {
         return 'pass_only';
     if (normalized === 'score_improvement')
         return 'score_improvement';
-    throw contractError('sandbox.md frontmatter evaluator.keep_policy must be one of: score_improvement, pass_only.');
+    if (normalized === 'quality_gated')
+        return 'quality_gated';
+    throw contractError('sandbox.md frontmatter evaluator.keep_policy must be one of: score_improvement, pass_only, quality_gated.');
 }
 export function parseSandboxContract(content) {
     const { frontmatter, body } = extractFrontmatter(content);
@@ -151,9 +153,40 @@ export function parseEvaluatorResult(raw) {
     if (result.score !== undefined && typeof result.score !== 'number') {
         throw contractError('Evaluator output score must be numeric when provided.');
     }
-    return result.score === undefined
-        ? { pass: result.pass }
-        : { pass: result.pass, score: result.score };
+    let qualityGates;
+    if (result.qualityGates !== undefined) {
+        const rawGates = result.qualityGates;
+        if (!rawGates || typeof rawGates !== 'object' || Array.isArray(rawGates)
+            || Object.values(rawGates).some((value) => typeof value !== 'boolean')) {
+            throw contractError('Evaluator output qualityGates must be an object of string->boolean when provided.');
+        }
+        qualityGates = rawGates;
+    }
+    return {
+        pass: result.pass,
+        ...(result.score === undefined ? {} : { score: result.score }),
+        ...(qualityGates === undefined ? {} : { qualityGates }),
+    };
+}
+const SUSPICIOUS_AGGREGATE_GATE_NAMES = new Set([
+    'ledger_conformance',
+    'conformance',
+    'all',
+    'ok',
+    'pass',
+    'gates',
+]);
+export function validateQualityGateNames(gates) {
+    return Object.keys(gates)
+        .filter((name) => SUSPICIOUS_AGGREGATE_GATE_NAMES.has(name.trim().toLowerCase()))
+        .map((name) => `Quality gate "${name}" looks like a generic aggregate gate; prefer named, granular gates instead of one catch-all.`);
+}
+export function failedQualityGates(gates) {
+    if (!gates)
+        return [];
+    return Object.entries(gates)
+        .filter(([, value]) => value === false)
+        .map(([name]) => name);
 }
 export async function loadAutoresearchMissionContract(missionDirArg) {
     let missionDir = resolve(missionDirArg);

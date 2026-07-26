@@ -88,7 +88,7 @@ export function buildAutoresearchSetupPrompt(input) {
         '  "evaluatorCommand": string,',
         '  "evaluatorSource": "user" | "inferred",',
         '  "confidence": number,',
-        '  "keepPolicy": "score_improvement" | "pass_only" | null,',
+        '  "keepPolicy": "score_improvement" | "pass_only" | "quality_gated" | null,',
         '  "slug": string,',
         '  "readyToLaunch": boolean,',
         '  "clarificationQuestion": string | null,',

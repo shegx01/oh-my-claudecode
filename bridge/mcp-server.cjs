@@ -23972,6 +23972,160 @@ function readModeState(mode, directory, sessionId) {
   }
 }
 
+// src/lib/ledger-verification.ts
+var P_MAX = 3;
+var STAMPED_RISK_MAX_RATIO = 0.5;
+var MAX_ROUNDS = 20;
+var CANONICAL_AXIS_KEYWORDS = [
+  "dependency-direction",
+  "module-boundaries",
+  "error-taxonomy",
+  "transaction-boundaries",
+  "consistency-model",
+  "schema-evolution",
+  "api-versioning",
+  "cross-cutting-concerns",
+  "testability-seams",
+  "failure-isolation",
+  "performance-envelope",
+  "deploy-topology"
+];
+var EARLY_EXIT_STATUS = "BELOW_THRESHOLD_EARLY_EXIT";
+var FILE_LINE_PATTERN = /[^\s:]+:\d+/;
+function asRecord(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : null;
+}
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+function asString(value) {
+  return typeof value === "string" ? value : "";
+}
+function rowStatus(row) {
+  return asString(row.status).trim().toLowerCase();
+}
+function isMaterial(row) {
+  return row.material === true;
+}
+function rowText(row) {
+  return [asString(row.choice), asString(row.axis), asString(row.rationale), asString(row.material_reason)].join(" ").toLowerCase();
+}
+function looksLikeAttestation(rows) {
+  return rows.some((row) => {
+    const text = [asString(row.choice), asString(row.rationale)].join(" ").toLowerCase();
+    return text.includes("no material fork") || text.includes("no material forks");
+  });
+}
+function countActiveComponents(diState) {
+  const topology = asRecord(diState.topology);
+  if (!topology) return 0;
+  const components = asArray(topology.components).map(asRecord).filter((c) => c !== null);
+  const active = components.filter((c) => c.deferred !== true && asString(c.status).trim().toLowerCase() !== "deferred");
+  return active.length > 0 ? active.length : components.length;
+}
+function specStatus(diState) {
+  const spec = asRecord(diState.spec);
+  const candidate = diState.Status ?? diState.spec_status ?? diState.status ?? (spec ? spec.Status ?? spec.status : void 0);
+  return asString(candidate).trim();
+}
+function hasFileLineEvidence(row) {
+  return asArray(row.evidence).some((entry) => FILE_LINE_PATTERN.test(asString(entry)));
+}
+function hasNoveltyNote(row) {
+  return asString(row.rationale).trim().length > 0;
+}
+function enforcementIsProse(mechanism) {
+  const value = mechanism.trim();
+  if (value.length === 0) return true;
+  const hasPathOrCommandToken = value.includes("/") || value.includes(".") || value.includes("::") || /\s/.test(value.trim());
+  return !hasPathOrCommandToken;
+}
+function hasPersistedUserExitTurn(rounds) {
+  return rounds.map(asRecord).some((round) => {
+    if (!round) return false;
+    if (round.user_exit === true || round.early_exit === true) return true;
+    const kind = asString(round.type ?? round.kind ?? round.event).toLowerCase();
+    return kind.includes("user-exit") || kind.includes("user_exit") || kind.includes("early-exit");
+  });
+}
+function evaluateLedgerVerification(diState) {
+  const blocks = [];
+  const state = asRecord(diState);
+  if (!state) {
+    return { verdict: "FAIL", blocks: ["deep-interview state is missing or malformed"] };
+  }
+  const ledger = asArray(state.decision_ledger).map(asRecord).filter((r) => r !== null);
+  const architectureContext = state.architecture_context ?? null;
+  const behaviorContext = state.behavior_context ?? null;
+  const invariants = asArray(state.architectural_invariants).map(asRecord).filter((r) => r !== null);
+  const rounds = asArray(state.rounds);
+  const activeComponents = countActiveComponents(state);
+  const status = specStatus(state);
+  const materialRows = ledger.filter(isMaterial);
+  const trivialAttestationExit = activeComponents <= 1 && looksLikeAttestation(ledger);
+  if ((architectureContext === null || behaviorContext === null) && !trivialAttestationExit) {
+    blocks.push("architecture_context or behavior_context is null without a single-trivial attestation row");
+  }
+  for (const row of ledger) {
+    if (isMaterial(row) && rowStatus(row) === "undecided") {
+      blocks.push(`material ledger row is undecided: ${asString(row.id) || rowText(row).slice(0, 40)}`);
+    }
+  }
+  for (const row of materialRows) {
+    if (rowStatus(row) !== "decided") continue;
+    const options = asArray(row.options);
+    const rationale = asString(row.rationale).trim();
+    if (options.length < 2 || rationale.length < 12 || asRecord(row.option_tradeoffs) === null) {
+      blocks.push(`decided material row misses the tradeoff floor: ${asString(row.id) || rowText(row).slice(0, 40)}`);
+    }
+  }
+  for (const row of materialRows) {
+    if (rowStatus(row) !== "conformed") continue;
+    if (!hasFileLineEvidence(row)) {
+      blocks.push(`conformed material row lacks file:line evidence: ${asString(row.id) || rowText(row).slice(0, 40)}`);
+    }
+  }
+  let pendingConsensusCount = 0;
+  for (const row of ledger) {
+    if (rowStatus(row) !== "pending_consensus") continue;
+    pendingConsensusCount += 1;
+    if (!hasNoveltyNote(row)) {
+      blocks.push(`pending_consensus row lacks a novelty note: ${asString(row.id) || rowText(row).slice(0, 40)}`);
+    }
+  }
+  if (pendingConsensusCount > P_MAX) {
+    blocks.push(`pending_consensus count ${pendingConsensusCount} exceeds P_max ${P_MAX}`);
+  }
+  const stampedRiskRows = ledger.filter((row) => rowStatus(row) === "stamped_risk");
+  if (stampedRiskRows.length > 0 && status !== EARLY_EXIT_STATUS) {
+    blocks.push("stamped_risk rows exist but spec Status is not BELOW_THRESHOLD_EARLY_EXIT");
+  }
+  if (materialRows.length > 0 && stampedRiskRows.length > materialRows.length * STAMPED_RISK_MAX_RATIO) {
+    blocks.push(`stamped_risk rows exceed ${STAMPED_RISK_MAX_RATIO * 100}% of material rows`);
+  }
+  if (activeComponents > 1) {
+    const coveredText = ledger.map(rowText).join(" ");
+    for (const axis of CANONICAL_AXIS_KEYWORDS) {
+      const keyword = axis.replace(/-/g, " ");
+      if (!coveredText.includes(axis) && !coveredText.includes(keyword)) {
+        blocks.push(`canonical axis not covered in the ledger: ${axis}`);
+      }
+    }
+  }
+  for (const invariant of invariants) {
+    if (enforcementIsProse(asString(invariant.enforcement_mechanism))) {
+      blocks.push(`architectural_invariant enforcement_mechanism is prose: ${asString(invariant.id) || asString(invariant.statement).slice(0, 40)}`);
+    }
+  }
+  if (status === EARLY_EXIT_STATUS && !(rounds.length >= MAX_ROUNDS || hasPersistedUserExitTurn(rounds))) {
+    blocks.push("BELOW_THRESHOLD_EARLY_EXIT is not falsifiable: no round cap reached and no persisted user-exit turn");
+  }
+  return { verdict: blocks.length === 0 ? "PASS" : "FAIL", blocks };
+}
+
+// src/tools/state-tools.ts
+var import_crypto8 = require("crypto");
+
 // src/hooks/mode-registry/index.ts
 var import_fs13 = require("fs");
 var import_path14 = require("path");
@@ -25581,7 +25735,8 @@ var STATE_TOOL_MODES = [
   "ralplan",
   "omc-teams",
   "skill-active",
-  "merge-readiness"
+  "merge-readiness",
+  "ledger-verification"
 ];
 var STATE_WRITE_MODES = [
   ...EXECUTION_MODES,
@@ -26280,6 +26435,9 @@ var stateWriteTool = {
       session_id
     } = args;
     try {
+      if (mode === "ledger-verification") {
+        throw new Error("ledger-verification is runtime-owned; write it via the ledger_verify tool");
+      }
       const root = validateWorkingDirectory(workingDirectory);
       const sessionId = session_id;
       if (state) {
@@ -27210,12 +27368,77 @@ No active sessions for this mode.`);
     }
   }
 };
+var ledgerVerifyTool = {
+  name: "ledger_verify",
+  description: "Re-run the mechanical Ledger Verification Gate floors over the active deep-interview state and write the unforgeable runtime-owned ledger-verification record. This is the ONLY writer of that record; the interviewing context cannot forge it via state_write. Returns the verdict, block reasons, and the sha256 of the spec bytes.",
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  schema: {
+    spec_path: external_exports.string().max(500).optional().describe("Path to the final spec file. Defaults to the active deep-interview state spec_path."),
+    workingDirectory: external_exports.string().optional().describe("Working directory (defaults to cwd)"),
+    session_id: external_exports.string().optional().describe("Session ID for session-scoped state isolation.")
+  },
+  handler: async (args) => {
+    const { spec_path, workingDirectory, session_id } = args;
+    try {
+      const root = validateWorkingDirectory(workingDirectory);
+      const sessionId = session_id && session_id.trim() || process.env.CLAUDE_SESSION_ID && process.env.CLAUDE_SESSION_ID.trim() || resolveSessionId({ context: "cli" });
+      if (sessionId) validateSessionId(sessionId);
+      const diState = readModeState("deep-interview", root, sessionId || void 0);
+      if (!diState) {
+        return {
+          content: [{ type: "text", text: "ledger_verify error: no active deep-interview state found for this session." }],
+          isError: true
+        };
+      }
+      const specPath = spec_path && spec_path.trim() || (typeof diState.spec_path === "string" ? diState.spec_path.trim() : "");
+      if (!specPath) {
+        return {
+          content: [{ type: "text", text: "ledger_verify error: no spec_path provided and none present in deep-interview state." }],
+          isError: true
+        };
+      }
+      const resolvedSpecPath = (0, import_path25.isAbsolute)(specPath) ? specPath : (0, import_path25.join)(root, specPath);
+      const specBytes = (0, import_fs25.readFileSync)(resolvedSpecPath);
+      const specHash = (0, import_crypto7.createHash)("sha256").update(specBytes).digest("hex");
+      const { verdict, blocks } = evaluateLedgerVerification(diState);
+      const record2 = {
+        spec_hash: specHash,
+        verdict,
+        blocks,
+        verifier_run_id: (0, import_crypto8.randomUUID)(),
+        verified_at: (/* @__PURE__ */ new Date()).toISOString(),
+        _meta: { updatedBy: "ledger_verify_tool" }
+      };
+      const written = writeModeState("ledger-verification", record2, root, sessionId || void 0);
+      if (!written) {
+        return {
+          content: [{ type: "text", text: "ledger_verify error: could not persist the ledger-verification record (state mutation lock unavailable)." }],
+          isError: true
+        };
+      }
+      return {
+        content: [{
+          type: "text",
+          text: `Ledger verification ${verdict}. spec_hash: ${specHash}
+${blocks.length > 0 ? `Blocks:
+- ${blocks.join("\n- ")}` : "No blocks."}`
+        }]
+      };
+    } catch (error2) {
+      return {
+        content: [{ type: "text", text: `ledger_verify error: ${error2 instanceof Error ? error2.message : String(error2)}` }],
+        isError: true
+      };
+    }
+  }
+};
 var stateTools = [
   stateReadTool,
   stateWriteTool,
   stateClearTool,
   stateListActiveTool,
   stateGetStatusTool,
+  ledgerVerifyTool,
   {
     name: "merge_readiness_start",
     description: "Initialize a merge-readiness gate session for the current change. Call this first, before merge_readiness_set_content. The depth profile is parsed from the summary (--quick or --deep; standard is the default when neither flag is present). Re-running it while an active attempt is still pending is rejected - cancel via merge_readiness_cancel or let the attempt pass/pause first, so the in-progress audit trail is never silently overwritten.",
@@ -31275,7 +31498,7 @@ var import_os7 = require("os");
 
 // src/hooks/learner/loader.ts
 var import_fs35 = require("fs");
-var import_crypto8 = require("crypto");
+var import_crypto9 = require("crypto");
 var import_path42 = require("path");
 
 // src/hooks/learner/finder.ts
@@ -31534,7 +31757,7 @@ function parseArrayValue(rawValue, lines, currentIndex) {
 
 // src/hooks/learner/loader.ts
 function createContentHash(content) {
-  return (0, import_crypto8.createHash)("sha256").update(content).digest("hex").slice(0, 16);
+  return (0, import_crypto9.createHash)("sha256").update(content).digest("hex").slice(0, 16);
 }
 function loadAllSkills(projectRoot) {
   const candidates = findSkillFiles(projectRoot);

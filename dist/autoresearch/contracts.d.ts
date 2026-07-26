@@ -1,4 +1,5 @@
-export type AutoresearchKeepPolicy = 'score_improvement' | 'pass_only';
+export type AutoresearchKeepPolicy = 'score_improvement' | 'pass_only' | 'quality_gated';
+export type AutoresearchQualityGates = Record<string, boolean>;
 export interface AutoresearchEvaluatorContract {
     command: string;
     format: 'json';
@@ -12,6 +13,7 @@ export interface ParsedSandboxContract {
 export interface AutoresearchEvaluatorResult {
     pass: boolean;
     score?: number;
+    qualityGates?: AutoresearchQualityGates;
 }
 export interface AutoresearchMissionContract {
     missionDir: string;
@@ -27,5 +29,7 @@ export interface AutoresearchMissionContract {
 export declare function slugifyMissionName(value: string): string;
 export declare function parseSandboxContract(content: string): ParsedSandboxContract;
 export declare function parseEvaluatorResult(raw: string): AutoresearchEvaluatorResult;
+export declare function validateQualityGateNames(gates: AutoresearchQualityGates): string[];
+export declare function failedQualityGates(gates: AutoresearchQualityGates | undefined): string[];
 export declare function loadAutoresearchMissionContract(missionDirArg: string): Promise<AutoresearchMissionContract>;
 //# sourceMappingURL=contracts.d.ts.map

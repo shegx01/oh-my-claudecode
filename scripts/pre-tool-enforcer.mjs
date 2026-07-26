@@ -8,7 +8,7 @@
 
 import { closeSync, existsSync, fstatSync, lstatSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, renameSync, writeFileSync } from 'fs';
 import { createHash } from 'crypto';
-import { dirname, join, resolve, basename } from 'path';
+import { dirname, join, resolve, basename, isAbsolute } from 'path';
 import { homedir } from 'os';
 import { execFileSync } from 'child_process';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -670,6 +670,85 @@ function isStaleModeState(state) {
     .filter(value => Number.isFinite(value));
   if (timestamps.length === 0) return true;
   return Date.now() - Math.max(...timestamps) > STATE_STALE_MS;
+}
+
+const LEDGER_GATED_BRIDGE_SKILLS = new Set(['autopilot', 'ralph', 'team']);
+
+const DI_HANDOFF_PHASES = new Set(['spec-complete', 'pending-approval', 'pending_approval']);
+
+const MAX_LEDGER_SPEC_BYTES = 8 * 1024 * 1024;
+function readCappedSpecBytes(path) {
+  const fd = openSync(path, 'r');
+  try {
+    const stat = fstatSync(fd);
+    if (!stat.isFile() || stat.size > MAX_LEDGER_SPEC_BYTES) {
+      throw new Error('spec-too-large');
+    }
+    const buffer = Buffer.allocUnsafe(stat.size);
+    let read = 0;
+    while (read < stat.size) {
+      const n = readSync(fd, buffer, read, stat.size - read, read);
+      if (n <= 0) break;
+      read += n;
+    }
+    return buffer.subarray(0, read);
+  } finally {
+    try { closeSync(fd); } catch { /* ignore */ }
+  }
+}
+
+function evaluateLedgerBridgeGate({ skillName, diState, diStale, ledgerRecord, readSpecBytes }) {
+  if (!skillName || !LEDGER_GATED_BRIDGE_SKILLS.has(skillName)) {
+    return { allow: true };
+  }
+
+  const di = diState;
+  if (!di || typeof di !== 'object' || di.active !== true || diStale) {
+    return { allow: true };
+  }
+
+  const phase = typeof di.current_phase === 'string' ? di.current_phase.trim() : '';
+  const specPath = typeof di.spec_path === 'string' ? di.spec_path.trim() : '';
+  const awaiting = specPath !== ''
+    || di.awaiting_execution_bridge === true
+    || DI_HANDOFF_PHASES.has(phase);
+  if (!awaiting) {
+    return { allow: true };
+  }
+
+  const record = ledgerRecord;
+  const denyReason = (got) =>
+    `[LEDGER GATE] deep-interview handoff to "${skillName}" is blocked: `
+    + `the Ledger Verification Gate must record verdict:PASS with a spec hash matching `
+    + `the current spec (got: ${got}). Resolve the ledger and re-run the ledger_verify tool.`;
+
+  if (!record || typeof record !== 'object') {
+    return { allow: false, reason: denyReason('missing') };
+  }
+  if (record.verdict !== 'PASS') {
+    return { allow: false, reason: denyReason(record.verdict === 'FAIL' ? 'FAIL' : 'missing') };
+  }
+
+  if (!specPath) {
+    return { allow: false, reason: denyReason('spec-unreadable') };
+  }
+
+  let bytes;
+  try {
+    bytes = readSpecBytes(specPath);
+  } catch {
+    return { allow: false, reason: denyReason('spec-unreadable') };
+  }
+  if (bytes === undefined || bytes === null) {
+    return { allow: false, reason: denyReason('spec-unreadable') };
+  }
+
+  const actualHash = createHash('sha256').update(bytes).digest('hex');
+  if (actualHash !== record.spec_hash) {
+    return { allow: false, reason: denyReason('hash-mismatch') };
+  }
+
+  return { allow: true };
 }
 
 function normalizeText(value) {
@@ -1416,6 +1495,42 @@ async function main() {
       return;
     }
 
+    if (toolName === 'Skill') {
+      let ledgerDenyReason = null;
+      try {
+        const toolInput = data.toolInput || data.tool_input || {};
+        const skillName = extractSkillName(toolInput);
+        if (skillName && LEDGER_GATED_BRIDGE_SKILLS.has(skillName)) {
+          const { state: di } = readSessionModeState(stateDir, 'deep-interview', sessionId);
+          const { state: ledgerRecord } = readSessionModeState(stateDir, 'ledger-verification', sessionId);
+          const result = evaluateLedgerBridgeGate({
+            skillName,
+            diState: di,
+            diStale: isStaleModeState(di),
+            ledgerRecord,
+            readSpecBytes: (specPath) => {
+              const resolved = isAbsolute(specPath) ? specPath : join(directory, specPath);
+              return readCappedSpecBytes(resolved);
+            },
+          });
+          if (!result.allow) ledgerDenyReason = result.reason;
+        }
+      } catch {
+        ledgerDenyReason = null;
+      }
+      if (ledgerDenyReason) {
+        console.log(JSON.stringify({
+          continue: true,
+          hookSpecificOutput: {
+            hookEventName: 'PreToolUse',
+            permissionDecision: 'deny',
+            permissionDecisionReason: ledgerDenyReason
+          }
+        }));
+        return;
+      }
+    }
+
     const modeActive = hasActiveMode(stateDir, sessionId);
 
     // When set, replaces the Task/Agent tool input via hookSpecificOutput.updatedInput
@@ -1656,4 +1771,8 @@ async function main() {
   }
 }
 
-main();
+export { evaluateLedgerBridgeGate, LEDGER_GATED_BRIDGE_SKILLS };
+
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  main();
+}
