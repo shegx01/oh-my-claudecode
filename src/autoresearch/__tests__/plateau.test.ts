@@ -104,7 +104,6 @@ describe('countTrailingIterationsWithoutBestStateImprovement', () => {
       { iteration: 2, kind: 'iteration', decision: 'discard' },
     ]);
     try {
-      // Two trailing discards, then the baseline boundary halts the walk.
       expect(await countTrailingIterationsWithoutBestStateImprovement(ledgerFile)).toBe(2);
     } finally {
       await rm(ledgerFile.replace(/\/ledger\.json$/, ''), { recursive: true, force: true });
@@ -132,7 +131,6 @@ describe('countTrailingIterationsWithoutBestStateImprovement', () => {
       { iteration: 3, kind: 'iteration', decision: 'noop' },
     ]);
     try {
-      // A trailing noop is a non-evaluation and halts the walk immediately.
       expect(await countTrailingIterationsWithoutBestStateImprovement(ledgerFile)).toBe(0);
     } finally {
       await rm(ledgerFile.replace(/\/ledger\.json$/, ''), { recursive: true, force: true });
@@ -147,7 +145,6 @@ describe('countTrailingIterationsWithoutBestStateImprovement', () => {
       { iteration: 4, kind: 'iteration', decision: 'discard' },
     ]);
     try {
-      // Two trailing discards, then the noop non-evaluation halts the walk.
       expect(await countTrailingIterationsWithoutBestStateImprovement(ledgerFile)).toBe(2);
     } finally {
       await rm(ledgerFile.replace(/\/ledger\.json$/, ''), { recursive: true, force: true });

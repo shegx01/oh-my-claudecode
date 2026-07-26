@@ -65,8 +65,6 @@ const EXECUTION_MODES: [string, ...string[]] = [
   'autopilot', 'autoresearch', 'team', 'ralph', 'ultrawork', 'ultraqa', 'deep-interview', 'self-improve'
 ];
 
-// merge-readiness and ledger-verification are read/clear-eligible (state_read/status/clear
-// + /cancel work) but NOT write-eligible — both are runtime-owned.
 const STATE_TOOL_MODES: [string, ...string[]] = [
   ...EXECUTION_MODES,
   'ralplan',
@@ -75,8 +73,6 @@ const STATE_TOOL_MODES: [string, ...string[]] = [
   'merge-readiness',
   'ledger-verification'
 ];
-// Modes that may be generically written via state_write. Excludes merge-readiness and
-// ledger-verification (runtime-owned).
 const STATE_WRITE_MODES: [string, ...string[]] = [
   ...EXECUTION_MODES,
   'ralplan',

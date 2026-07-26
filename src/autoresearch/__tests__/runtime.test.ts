@@ -300,7 +300,6 @@ async function makeGatedContract(repo: string): Promise<AutoresearchMissionContr
   const sandboxContent = `---\nevaluator:\n  command: node scripts/eval.js\n  format: json\n  keep_policy: quality_gated\n---\nStay inside the mission boundary.\n`;
   await writeFile(missionFile, missionContent, 'utf-8');
   await writeFile(sandboxFile, sandboxContent, 'utf-8');
-  // Evaluator passes with a good score but a failing quality gate -> must discard.
   await writeFile(
     join(repo, 'scripts', 'eval.js'),
     'process.stdout.write(JSON.stringify({ pass: true, score: 0.9, qualityGates: { lint: false } }));\n',
@@ -341,7 +340,6 @@ describe('autoresearch quality_gated parity', () => {
       const initialManifest = await loadAutoresearchRunManifest(repo, runtime.runId);
       const lastKeptCommit = initialManifest.last_kept_commit;
 
-      // Produce a candidate commit that the gated evaluator will reject.
       await writeFile(join(worktreePath, 'change.txt'), 'candidate change\n', 'utf-8');
       execFileSync('git', ['add', 'change.txt'], { cwd: worktreePath, stdio: 'ignore' });
       execFileSync('git', ['commit', '-m', 'gate-failing change'], { cwd: worktreePath, stdio: 'ignore' });
@@ -359,12 +357,10 @@ describe('autoresearch quality_gated parity', () => {
       const decision = await processAutoresearchCandidate(worktreeContract, initialManifest, repo);
       expect(decision).toBe('discard');
 
-      // Worktree HEAD must be reset back to the last kept commit, not the candidate commit.
       const headAfterDiscard = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: worktreePath, encoding: 'utf-8' }).trim();
       expect(headAfterDiscard).toBe(lastKeptCommit);
       expect(headAfterDiscard).not.toBe(candidateCommit);
 
-      // A discard row must be written to the ledger.
       const ledger = JSON.parse(await readFile(runtime.ledgerFile, 'utf-8')) as {
         entries: Array<{ decision: string; decision_reason: string }>;
       };
@@ -372,7 +368,6 @@ describe('autoresearch quality_gated parity', () => {
       expect(discardEntry).toBeTruthy();
       expect(discardEntry?.decision_reason).toMatch(/quality gate/i);
 
-      // Plateau wiring: mode-state must expose the plateau counters after the discard.
       const modeState = readModeState<Record<string, unknown>>('autoresearch', repo);
       expect(modeState?.plateau_count).toBe(1);
       expect(modeState?.plateau_limit).toBe(3);

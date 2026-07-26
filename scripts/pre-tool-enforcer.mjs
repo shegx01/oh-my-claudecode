@@ -672,20 +672,10 @@ function isStaleModeState(state) {
   return Date.now() - Math.max(...timestamps) > STATE_STALE_MS;
 }
 
-// Mutating deep-interview execution bridges that MUST NOT hand off unless an
-// independent Ledger Verification Gate record (verdict:PASS + matching spec hash)
-// exists in the deep-interview ledger. `omc-plan`/`plan` is intentionally
-// EXCLUDED — it is the pending_consensus resolution path and must stay allowed.
 const LEDGER_GATED_BRIDGE_SKILLS = new Set(['autopilot', 'ralph', 'team']);
 
-// Phases (or the explicit awaiting flag) that signal a deep-interview has
-// reached completion and is awaiting the execution bridge.
 const DI_HANDOFF_PHASES = new Set(['spec-complete', 'pending-approval', 'pending_approval']);
 
-// Upper bound on the spec file the ledger gate is willing to hash on a tool call.
-// A file above this cap is treated as spec-unreadable (fail-open on read → deny at
-// the gate) so a pathological spec cannot be used to stall the hook. fstat the open
-// fd first to avoid a stat->open race, then read through that same fd.
 const MAX_LEDGER_SPEC_BYTES = 8 * 1024 * 1024;
 function readCappedSpecBytes(path) {
   const fd = openSync(path, 'r');
@@ -707,27 +697,12 @@ function readCappedSpecBytes(path) {
   }
 }
 
-/**
- * Pure decision function for the deep-interview ledger bridge gate.
- * Testable in isolation without spawning the whole hook.
- *
- * @param {object} args
- * @param {string|null} args.skillName        normalized skill name (e.g. 'autopilot')
- * @param {object|null} args.diState          the deep-interview mode state object (or null)
- * @param {boolean} args.diStale              whether diState is stale (isStaleModeState result)
- * @param {object|null} args.ledgerRecord     the runtime-owned ledger-verification record (or null)
- * @param {(specPath: string) => Buffer|Uint8Array|string} args.readSpecBytes
- *        reads the spec file bytes given the (already-resolved) spec path; may throw
- * @returns {{ allow: boolean, reason?: string }}
- */
 function evaluateLedgerBridgeGate({ skillName, diState, diStale, ledgerRecord, readSpecBytes }) {
-  // (a) skill not gated → allow
   if (!skillName || !LEDGER_GATED_BRIDGE_SKILLS.has(skillName)) {
     return { allow: true };
   }
 
   const di = diState;
-  // (b) no active, non-stale deep-interview → allow (standalone bridge unaffected)
   if (!di || typeof di !== 'object' || di.active !== true || diStale) {
     return { allow: true };
   }
@@ -741,7 +716,6 @@ function evaluateLedgerBridgeGate({ skillName, diState, diStale, ledgerRecord, r
     return { allow: true };
   }
 
-  // Active-and-awaiting: ENFORCE the ledger via the runtime-owned record.
   const record = ledgerRecord;
   const denyReason = (got) =>
     `[LEDGER GATE] deep-interview handoff to "${skillName}" is blocked: `
@@ -1521,12 +1495,6 @@ async function main() {
       return;
     }
 
-    // Deep-interview ledger gate (fail-open): refuse an execution-bridge handoff
-    // to a mutating bridge (autopilot/ralph/team) unless an independent Ledger Verification Gate
-    // verifier record with a matching spec hash exists. Any unexpected error
-    // (state unreadable, path issues) allows — the enforcer must never brick a
-    // session. Only a definitively-active handoff with a missing/FAIL/mismatched
-    // record denies. See evaluateLedgerBridgeGate.
     if (toolName === 'Skill') {
       let ledgerDenyReason = null;
       try {
@@ -1548,7 +1516,6 @@ async function main() {
           if (!result.allow) ledgerDenyReason = result.reason;
         }
       } catch {
-        // Fail-open: never brick a session on an unexpected error.
         ledgerDenyReason = null;
       }
       if (ledgerDenyReason) {
@@ -1804,10 +1771,8 @@ async function main() {
   }
 }
 
-// Exported for unit tests (the module is otherwise a directly-executed hook).
 export { evaluateLedgerBridgeGate, LEDGER_GATED_BRIDGE_SKILLS };
 
-// Only run the hook when executed directly (not when imported by tests).
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
   main();
 }

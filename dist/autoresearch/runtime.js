@@ -341,8 +341,6 @@ export async function countTrailingAutoresearchNoops(ledgerFile) {
     return count;
 }
 export const AUTORESEARCH_PLATEAU_K = 3;
-// Only these decisions represent an evaluated iteration that failed to improve
-// best state. noop/interrupted/abort are non-evaluations and act as boundaries.
 const AUTORESEARCH_PLATEAU_EVALUATED_DECISIONS = new Set([
     'discard',
     'ambiguous',
@@ -353,14 +351,10 @@ export async function countTrailingIterationsWithoutBestStateImprovement(ledgerF
     let count = 0;
     for (let index = entries.length - 1; index >= 0; index -= 1) {
         const entry = entries[index];
-        // A baseline entry is the boundary of the run's history.
         if (!entry || entry.kind !== 'iteration')
             break;
-        // A keep is the only decision that improves best state; stop resetting there.
         if (entry.decision === 'keep')
             break;
-        // Only evaluated, non-improving decisions count toward a plateau. noop /
-        // interrupted / abort are non-evaluations and act as a boundary.
         if (!AUTORESEARCH_PLATEAU_EVALUATED_DECISIONS.has(entry.decision))
             break;
         count += 1;

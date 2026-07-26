@@ -1,9 +1,6 @@
 import { createHash } from 'crypto';
 import { describe, expect, it } from 'vitest';
 
-// Import the exported pure gate function from the .mjs hook script.
-// The module guards main() behind an entry-point check, so importing it here
-// does not execute the hook.
 // @ts-expect-error Local hook helper is a JS module loaded directly by the tests.
 import { evaluateLedgerBridgeGate } from '../../scripts/pre-tool-enforcer.mjs';
 
